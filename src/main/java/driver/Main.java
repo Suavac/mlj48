@@ -8,52 +8,91 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by 12100888 on 07/11/2016.
  */
 public class Main {
-    public static void main(final String... args) throws IOException {
 
-        // Get and read File
-        final ClassLoader classLoader = new Main().getClass().getClassLoader();
-        final File file = new File(classLoader.getResource("owls15.csv").getFile());
-        final Reader fileReader = new FileReader(file);
+    public static void main(final String... args) throws Exception {
 
-        // Parse file
-        // Iterable<CSVRecord> instances  = csvFileParser;
-        final CSVFormat csvFileFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader();
-        final CSVParser csvFileParser = new CSVParser(fileReader, csvFileFormat);
-
-        // Extract Attribute names
-        final ArrayList<String> attributeList = new ArrayList<String>(csvFileParser.getHeaderMap().keySet());
-        final String testClass = attributeList.get(attributeList.size() - 5);
-        final HashMap<String, Attribute> attributes = new HashMap<String, Attribute>();
-        for (final String attributeName : attributeList) {
-            attributes.put(attributeName, new Attribute(attributeName));
-        }
-
-        extractAttributes(csvFileParser, attributeList, attributes);
-        final Attribute a = attributes.get(testClass);
+        PreprocessData ppd = new PreprocessData("owls15.csv");
+        final HashMap<String, Attribute> attributes = ppd.getAttributes();
+        ppd.getDecisionClass();
+        final String attributeName = ppd.getAttributeNames().get(0);
+        final Attribute a = attributes.get(attributeName);
+        final Attribute target = attributes.get("type");
+        a.convertCont();
         final ArrayList<String> b = a.getValues();
         System.out.println(b);
         entropy(b);
+        createThresholdsForAttribute(attributes.get(attributeName));
+        System.out.println(a.getThresholds());
 
+        final ArrayList<Float> bContin = a.getValuesContinous();
+
+        final ArrayList<String> testingDiscretization = new ArrayList<String>();
+        for(Float value : bContin){
+            if(value<a.getThresholds().get(0)){
+                testingDiscretization.add("A");
+            }else{
+                testingDiscretization.add("B");
+            }
+        }
+
+        System.out.println(testingDiscretization);
+
+        calculateGainForPair(target.getValues(), testingDiscretization);
     }
 
-    //http://www.saedsayad.com/decision_tree.htm
-    //Extract values of each attribute
-    public static void extractAttributes(final CSVParser csvFileParser, final ArrayList<String> attributeList, final HashMap<String, Attribute> atributes) {
-        for (final CSVRecord record : csvFileParser) {
-            for (final String attributeName : attributeList) {
-                final Attribute tmp = atributes.get(attributeName);
-                tmp.addValue(record.get(attributeName));
-            }
+    public static Float calculateGainForPair(ArrayList<String> target, ArrayList<String> attribute){
+        float occurancessAB = attribute.size();
+        float occurrencesA = Collections.frequency(attribute, "A");
+        float occurrencesB = Collections.frequency(attribute, "B");
+        float probA = occurrencesA/occurancessAB;
+        float probB = occurrencesB/occurancessAB;
 
+        final HashMap<String, Long> countMap = new HashMap<String, Long>();
+        // count occurances of decision classes
+        int i = 0;
+        for(String label : target){
+            if(attribute.get(i).equals("B")){
+                if (!countMap.containsKey(label)) {
+                    countMap.put(label, 1L);
+                } else {
+                    Long count = countMap.get(label);
+                    count = count + 1;
+                    countMap.put(label, count);
+                }
+//            } else if(attribute.get(i).equals("B")){
+//                if (!countMap.containsKey(label)) {
+//                    countMap.put(label, 1L);
+//                } else {
+//                    Long count = countMap.get(label);
+//                    count = count + 1;
+//                    countMap.put(label, count);
+//                }
+            }
+            i++;
         }
+        System.out.println("OCCURANCES MATRIX = " + countMap);
+        return null;
+    }
+
+    public static void createThresholdsForAttribute(Attribute attribute){
+        TreeSet<Float> uniqueValues= new TreeSet<Float>();
+        for(String value : attribute.getValues()){
+            uniqueValues.add(Float.parseFloat(value));
+        }
+        ArrayList<Float> a = new ArrayList<Float>(uniqueValues);
+        System.out.println(uniqueValues);
+        ArrayList<Float> t = new ArrayList<Float>();
+        for(int i =0 ; i < a.size()-1; i++){
+            t.add((a.get(i)+a.get(i+1))/2);
+        }
+        attribute.storeThresholds(t);
+        System.out.println(t);
     }
 
 
@@ -78,9 +117,9 @@ public class Main {
         for (final String label : keySet) {
             //System.out.println(countMap.get(label) / (float) 16);
             final float percentage = (float) (countMap.get(label) / (float) 135);
-            System.out.println(percentage);
+            //System.out.println(percentage);
             probabilities.put(label, percentage);
-            System.out.println(label + " : " + probabilities.get(label));
+            //System.out.println(label + " : " + probabilities.get(label));
             entropy -= (probabilities.get(label) * (Math.log(probabilities.get(label)) / Math.log(2)) * probabilities.get(label));
         }
 
