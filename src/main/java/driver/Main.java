@@ -4,54 +4,98 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Set;
 
 /**
  * Created by 12100888 on 07/11/2016.
  */
 public class Main {
-    public static void main(String... args) throws IOException {
+    public static void main(final String... args) throws IOException {
 
         // Get and read File
-        ClassLoader classLoader = new Main().getClass().getClassLoader();
-        File file = new File(classLoader.getResource("owls15.csv").getFile());
-        Reader fileReader = new FileReader(file);
+        final ClassLoader classLoader = new Main().getClass().getClassLoader();
+        final File file = new File(classLoader.getResource("owls15.csv").getFile());
+        final Reader fileReader = new FileReader(file);
 
         // Parse file
         // Iterable<CSVRecord> instances  = csvFileParser;
-        CSVFormat csvFileFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader();
-        CSVParser csvFileParser = new CSVParser(fileReader, csvFileFormat);
+        final CSVFormat csvFileFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader();
+        final CSVParser csvFileParser = new CSVParser(fileReader, csvFileFormat);
 
         // Extract Attribute names
-        ArrayList<String> attributeList = new ArrayList<String>(csvFileParser.getHeaderMap().keySet());
-
-        HashMap<String, Attribute> atributes = new HashMap<String, Attribute>();
-        for(String attributeName : attributeList){
-            atributes.put(attributeName, new Attribute(attributeName));
+        final ArrayList<String> attributeList = new ArrayList<String>(csvFileParser.getHeaderMap().keySet());
+        final String testClass = attributeList.get(attributeList.size() - 5);
+        final HashMap<String, Attribute> attributes = new HashMap<String, Attribute>();
+        for (final String attributeName : attributeList) {
+            attributes.put(attributeName, new Attribute(attributeName));
         }
 
-        extractAttributes(csvFileParser, attributeList,atributes);
-        Attribute a = atributes.get("type");
-        ArrayList<String> b = a.getValues();
+        extractAttributes(csvFileParser, attributeList, attributes);
+        final Attribute a = attributes.get(testClass);
+        final ArrayList<String> b = a.getValues();
         System.out.println(b);
+        entropy(b);
 
     }
-    //Extract values of each attribute
-        public static void extractAttributes(CSVParser csvFileParser, ArrayList<String> attributeList, HashMap<String, Attribute> atributes){
-            for (CSVRecord record : csvFileParser) {
-                for(String attributeName : attributeList ){
-                    Attribute tmp = atributes.get(attributeName);
-                    tmp.addValue(record.get(attributeName));
-                }
 
+    //http://www.saedsayad.com/decision_tree.htm
+    //Extract values of each attribute
+    public static void extractAttributes(final CSVParser csvFileParser, final ArrayList<String> attributeList, final HashMap<String, Attribute> atributes) {
+        for (final CSVRecord record : csvFileParser) {
+            for (final String attributeName : attributeList) {
+                final Attribute tmp = atributes.get(attributeName);
+                tmp.addValue(record.get(attributeName));
+            }
+
+        }
+    }
+
+
+    public static void entropy(final ArrayList<String> data) {
+        // count occurrences of values
+        final HashMap<String, Long> countMap = new HashMap<String, Long>();
+        for (final String label : data) {
+            if (!countMap.containsKey(label)) {
+                countMap.put(label, 1L);
+            } else {
+                Long count = countMap.get(label);
+                count = count + 1;
+                countMap.put(label, count);
             }
         }
-        // Extract values of each attribute
-        //extractValues(csvFileParser, attributes.get(0));
+        // printCount(countMap);
+        // get probabilities for each label
+        // calculate entropy
+        float entropy = 0;
+        final HashMap<String, Float> probabilities = new HashMap<String, Float>();
+        final Set<String> keySet = countMap.keySet();
+        for (final String label : keySet) {
+            //System.out.println(countMap.get(label) / (float) 16);
+            final float percentage = (float) (countMap.get(label) / (float) 135);
+            System.out.println(percentage);
+            probabilities.put(label, percentage);
+            System.out.println(label + " : " + probabilities.get(label));
+            entropy -= (probabilities.get(label) * (Math.log(probabilities.get(label)) / Math.log(2)) * probabilities.get(label));
+        }
+
+        System.out.println(entropy);
+//        System.out.println(Math.log(0.3) / Math.log(2));
+    }
+
+    private static void printCount(final HashMap<String, Long> countMap) {
+        final Set<String> keySet = countMap.keySet();
+        for (final String string : keySet) {
+            System.out.println(string + " : " + countMap.get(string));
+        }
+    }
+    // Extract values of each attribute
+    //extractValues(csvFileParser, attributes.get(0));
 //        System.out.println(extractValues(csvFileParser, attributes.get(1)));
 //        System.out.println(extractValues(csvFileParser, attributes.get(2)));
 //        for (CSVRecord record : csvFileParser) {
@@ -59,12 +103,9 @@ public class Main {
 //        }
 
 
-
-        //List csvRecords = csvFileParser.getHeaderMap();
-        //CSVRecord csvRecord = (CSVRecord) csvRecords.get(0);
-        //System.out.println(attributes.get(0));
-
-
+    //List csvRecords = csvFileParser.getHeaderMap();
+    //CSVRecord csvRecord = (CSVRecord) csvRecords.get(0);
+    //System.out.println(attributes.get(0));
 
 
 //        Reader in = new FileReader(file);
@@ -91,7 +132,6 @@ public class Main {
 //        //List csvRecords = csvFileParser.getHeaderMap();
 //        //CSVRecord csvRecord = (CSVRecord) csvRecords.get(0);
 //        System.out.println(csvFileParser.getHeaderMap().keySet());
-
 
 
 //    }
