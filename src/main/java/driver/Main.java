@@ -11,83 +11,123 @@ public class Main {
 ///http://clear-lines.com/blog/post/Discretizing-a-continuous-variable-using-Entropy.aspx
         final PreprocessData ppd = new PreprocessData("owls15.csv");
         final HashMap<String, Attribute> attributes = ppd.getAttributes();
-        ppd.getDecisionClass();
-        final String attributeName = ppd.getAttributeNames().get(2);
+
+        // choose attribute
+        final String attributeName = ppd.getAttributeNames().get(3);
         final Attribute a = attributes.get(attributeName);
-        final Attribute target = attributes.get("type");
+        // choose target
+        final Attribute targetAttribute = attributes.get("type");
+
+        // convert attribute to numeric values
         a.convertCont();
-        final ArrayList<String> b = a.getValues();
-        System.out.println(b);
-        entropy(b);
+
+        // Calculate Target Entropy
+        float targetEntropy = calculateEntropy(targetAttribute.getValues());
+        System.out.println("TARGET ENTROPY = " + targetEntropy);
+
+        // Create thresholds for an attribute data
         createThresholdsForAttribute(attributes.get(attributeName));
-        System.out.println(a.getThresholds());
+        //System.out.println(a.getThresholds().size());
+        //System.out.println(a.getThresholds());
 
+        // Get values of an attribute as numerical data
         final ArrayList<Float> bContin = a.getValuesContinous();
+//        ArrayList<String> testingDiscretization;
+//
+//        for(int i = 0;i <a.getThresholds().size();i++){
+//            testingDiscretization = new ArrayList<String>();
+//            for (final Float value : bContin) {
+//                if (value < a.getThresholds().get(i)) {
+//                    testingDiscretization.add("A");
+//                } else {
+//                    testingDiscretization.add("B");
+//                }
+//            }
+//            calculateGainForPair(targetAttribute.getValues(), testingDiscretization, targetEntropy,a.getThresholds().get(i) );
+//            System.out.println("_______________________________________");
+//        }
 
-        final ArrayList<String> testingDiscretization = new ArrayList<String>();
-        for (final Float value : bContin) {
-            if (value < a.getThresholds().get(7)) {
-                testingDiscretization.add("A");
-            } else {
-                testingDiscretization.add("B");
+
+
+        ///AFTER SHRIKING
+
+        final ArrayList<Float> shrinkedData = new ArrayList<Float>();
+        final ArrayList<String> shrinkedTarget = new ArrayList<String>();
+        Attribute secondIterationValues = new Attribute("secondIteration");
+        Attribute secondIterationTarget = new Attribute("secondIterationTarget");
+        int uu=0;
+        for(Float aui : bContin){
+            if(aui > (float) 1.6){
+                secondIterationValues.addValue(aui.toString());
+                shrinkedData.add(aui);
+                secondIterationTarget.addValue(targetAttribute.getValues().get(uu));
             }
+            uu++;
+        }
+        secondIterationValues.convertCont();
+        createThresholdsForAttribute(secondIterationValues);
+
+
+        ArrayList<String> testingDiscretization;
+
+        for(int i = 0;i <secondIterationValues.getThresholds().size();i++){
+            testingDiscretization = new ArrayList<String>();
+            for (final Float value : secondIterationValues.getValuesContinous()) {
+                if (value < secondIterationValues.getThresholds().get(i)) {
+                    testingDiscretization.add("A");
+                } else {
+                    testingDiscretization.add("B");
+                }
+            }
+            calculateGainForPair(secondIterationTarget.getValues(), testingDiscretization, targetEntropy,secondIterationValues.getThresholds().get(i) );
+            System.out.println("_______________________________________");
         }
 
-        System.out.println(testingDiscretization);
-
-        calculateGainForPair(target.getValues(), testingDiscretization);
     }
 
-    public static Float calculateGainForPair(final ArrayList<String> target, final ArrayList<String> attribute) {
+    public static Float calculateGainForPair(final ArrayList<String> target, final ArrayList<String> attribute, float targetEntropy, float threshold) {
         final float occurancessAB = attribute.size();
         final float occurrencesA = Collections.frequency(attribute, "A");
         final float occurrencesB = Collections.frequency(attribute, "B");
         final float probA = occurrencesA / occurancessAB;
         final float probB = occurrencesB / occurancessAB;
+
+//        System.out.println("occurancess AB = " + occurancessAB);
+//        System.out.println("occurrences A = " + occurrencesA);
+//        System.out.println("occurrences B = " + occurrencesB);
+//        System.out.println("probability A = " + probA);
+//        System.out.println("probability B = " + probB);
+
+        // Divide target into 2 groups 1. a < threshold , 2. a > threshold
+        ArrayList<String> leftNode = new ArrayList<String>();
+        ArrayList<String> rightNode = new ArrayList<String>();
+        int i = 0;
+        for(String value : attribute){
+            if(value.equals("A")){
+                leftNode.add(target.get(i));
+            } else{
+                rightNode.add(target.get(i));
+            }
+            i++;
+        }
+
+        float entropyA = calculateEntropy(leftNode);
+        System.out.println("ENTROPY A = " + entropyA);
+        float entropyB = calculateEntropy(rightNode);
+        System.out.println("ENTROPY B = " + entropyB);
+
+        //Calculate gain for the given threshold
+        float gain = targetEntropy - (probA*entropyA) - (probB*entropyB);
+        System.out.println("Threshold = " + threshold);
+        System.out.println("INFORMATION GAIN = " + gain);
+
+
+
         final HashMap<String, Float> a = countOcc(target, attribute, "A");
         final HashMap<String, Float> b = countOcc(target, attribute, "B");
-        System.out.println("occurancess AB = " + occurancessAB);
-        System.out.println("occurrences A = " + occurrencesA);
-        System.out.println("occurrences B = " + occurrencesB);
-        System.out.println("probability A = " + probA);
-        System.out.println("probability B = " + probB);
         System.out.println("OCCURANCES MATRIX A = " + a);
         System.out.println("OCCURANCES MATRIX B = " + b);
 
-        //calculate entropy for each A or B
-        float entropy = 0;
-        final float occA = a.get("SnowyOwl") + a.get("BarnOwl") + a.get("LongEaredOwl");
-        final float probOccA = occA / occurancessAB;
-        //System.out.println(occA);
-        //entropy -= (1 * (Math.log(1) / Math.log(2)));
-        //entropy -= (0 * (Math.log(0) / Math.log(2)));
-        //entropy -= (0 * (Math.log(0) / Math.log(2)));
-        entropy *= probOccA;
-        System.out.println("ENTROPY 1: " + entropy);
-
-        float entropy2 = 0;
-        final float occB = b.get("SnowyOwl") + b.get("BarnOwl") + b.get("LongEaredOwl");
-        final float probOccA2 = occB / occurancessAB;
-        //System.out.println(occA);
-        // final float r = b.get("SnowyOwl") / (occurancessAB - 1);
-        entropy2 -= (b.get("SnowyOwl") / (occB) * (Math.log(b.get("SnowyOwl") / (occB)) / Math.log(2)));
-        entropy2 -= (b.get("BarnOwl") / (occB) * (Math.log(b.get("BarnOwl") / (occB)) / Math.log(2)));
-        entropy2 -= (b.get("LongEaredOwl") / (occB) * (Math.log(b.get("LongEaredOwl") / (occB)) / Math.log(2)));
-        System.out.println("ENTROPY before prob 2: " + entropy2);
-        entropy2 *= probOccA2;
-        System.out.println("Prob 2: " + probOccA2);
-        System.out.println("ENTROPY 2: " + entropy2);
-
-        final float occuranceReal1 = 45;
-        final float occuranceRealAll = 45;
-
-        float entropy3 = 0;
-        entropy3 -= (occuranceReal1 / (occurancessAB) * (Math.log(occuranceReal1 / (occurancessAB)) / Math.log(2)));
-        entropy3 -= (occuranceReal1 / (occurancessAB) * (Math.log(occuranceReal1 / (occurancessAB)) / Math.log(2)));
-        entropy3 -= (occuranceReal1 / (occurancessAB) * (Math.log(occuranceReal1 / (occurancessAB)) / Math.log(2)));
-
-        System.out.println("ENTROPY Target: " + entropy3);
-        System.out.println("Gain Target 1 : " + (entropy3 - entropy2));
         return null;
     }
 
@@ -122,45 +162,35 @@ public class Main {
             uniqueValues.add(Float.parseFloat(value));
         }
         final ArrayList<Float> a = new ArrayList<Float>(uniqueValues);
-        System.out.println(uniqueValues);
+        //System.out.println(uniqueValues);
         final ArrayList<Float> t = new ArrayList<Float>();
         for (int i = 0; i < a.size() - 1; i++) {
             t.add((a.get(i) + a.get(i + 1)) / 2);
         }
         attribute.storeThresholds(t);
-        System.out.println(t);
+        //System.out.println(t);
     }
 
 
-    public static void entropy(final ArrayList<String> data) {
-        // count occurrences of values
+    public static Float calculateEntropy(final ArrayList<String> data) {
+        float numberOfSamples = data.size();
+        // count occurrences of each decision class
         final HashMap<String, Long> countMap = new HashMap<String, Long>();
         for (final String label : data) {
             if (!countMap.containsKey(label)) {
                 countMap.put(label, 1L);
             } else {
                 Long count = countMap.get(label);
-                count = count + 1;
+                count = count + 1L;
                 countMap.put(label, count);
             }
         }
-        // printCount(countMap);
-        // get probabilities for each label
-        // calculate entropy
         float entropy = 0;
-        final HashMap<String, Float> probabilities = new HashMap<String, Float>();
-        final Set<String> keySet = countMap.keySet();
-        for (final String label : keySet) {
-            //System.out.println(countMap.get(label) / (float) 16);
-            final float percentage = (float) (countMap.get(label) / (float) 135);
-            //System.out.println(percentage);
-            probabilities.put(label, percentage);
-            //System.out.println(label + " : " + probabilities.get(label));
-            entropy -= (probabilities.get(label) * (Math.log(probabilities.get(label)) / Math.log(2)) * probabilities.get(label));
+        for (final String label : countMap.keySet()) {
+            final float probabilityOfValue = (countMap.get(label) / numberOfSamples);
+            entropy -= (probabilityOfValue * (Math.log(probabilityOfValue) / Math.log(2)));
         }
-
-        System.out.println(entropy);
-//        System.out.println(Math.log(0.3) / Math.log(2));
+        return entropy;
     }
 
     private static void printCount(final HashMap<String, Long> countMap) {

@@ -60,4 +60,8 @@ public class PreprocessData {
 
         }
     }
+
+    public Object getTargetAttribute() {
+        return attributes.get("type");
+    }
 }
