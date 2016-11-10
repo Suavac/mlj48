@@ -5,17 +5,19 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.Reader;
 import java.util.ArrayList;
-import java.util.Iterator;
 
 /**
  * Created by 12100888 on 08/11/2016.
  */
 public class CSVReader {
 
-    private CSVParser csvFileParser;
-    private Iterable<CSVRecord> records;
+    private final CSVParser csvFileParser; // this is object of type iterable
+    private final Iterable<CSVRecord> records;
 
     public CSVReader() throws IOException {
         // Get and read File
@@ -29,11 +31,11 @@ public class CSVReader {
         this.records = csvFileParser;
     }
 
-    public ArrayList<String> getAttributeNames(){
+    public ArrayList<String> getAttributeNames() {
         return new ArrayList<String>(csvFileParser.getHeaderMap().keySet());
     }
 
-    public Iterable<CSVRecord> getDataSet(){
+    public Iterable<CSVRecord> getDataSet() {
         return this.records;
     }
 }

@@ -9,6 +9,7 @@ public class Main {
 
     public static void main(final String... args) throws Exception {
 ///http://clear-lines.com/blog/post/Discretizing-a-continuous-variable-using-Entropy.aspx
+        //http://clear-lines.com/blog/post/Discretizing-a-continuous-variable-using-Entropy.aspx
         final PreprocessData ppd = new PreprocessData("owls15.csv");
         final HashMap<String, Attribute> attributes = ppd.getAttributes();
 
@@ -22,7 +23,7 @@ public class Main {
         a.convertCont();
 
         // Calculate Target Entropy
-        float targetEntropy = calculateEntropy(targetAttribute.getValues());
+        final float targetEntropy = calculateEntropy(targetAttribute.getValues());
         System.out.println("TARGET ENTROPY = " + targetEntropy);
 
         // Create thresholds for an attribute data
@@ -34,7 +35,7 @@ public class Main {
         final ArrayList<Float> bContin = a.getValuesContinous();
 //        ArrayList<String> testingDiscretization;
 //
-//        for(int i = 0;i <a.getThresholds().size();i++){
+//        for (int i = 0; i < a.getThresholds().size(); i++) {
 //            testingDiscretization = new ArrayList<String>();
 //            for (final Float value : bContin) {
 //                if (value < a.getThresholds().get(i)) {
@@ -43,21 +44,20 @@ public class Main {
 //                    testingDiscretization.add("B");
 //                }
 //            }
-//            calculateGainForPair(targetAttribute.getValues(), testingDiscretization, targetEntropy,a.getThresholds().get(i) );
+//            calculateGainForPair(targetAttribute.getValues(), testingDiscretization, targetEntropy, a.getThresholds().get(i));
 //            System.out.println("_______________________________________");
 //        }
 
 
-
-        ///AFTER SHRIKING
+        //AFTER SHRIKING
 
         final ArrayList<Float> shrinkedData = new ArrayList<Float>();
         final ArrayList<String> shrinkedTarget = new ArrayList<String>();
-        Attribute secondIterationValues = new Attribute("secondIteration");
-        Attribute secondIterationTarget = new Attribute("secondIterationTarget");
-        int uu=0;
-        for(Float aui : bContin){
-            if(aui > (float) 1.6){
+        final Attribute secondIterationValues = new Attribute("secondIteration");
+        final Attribute secondIterationTarget = new Attribute("secondIterationTarget");
+        int uu = 0;
+        for (final Float aui : bContin) {
+            if (aui > (float) 0.8) {
                 secondIterationValues.addValue(aui.toString());
                 shrinkedData.add(aui);
                 secondIterationTarget.addValue(targetAttribute.getValues().get(uu));
@@ -70,7 +70,7 @@ public class Main {
 
         ArrayList<String> testingDiscretization;
 
-        for(int i = 0;i <secondIterationValues.getThresholds().size();i++){
+        for (int i = 0; i < secondIterationValues.getThresholds().size(); i++) {
             testingDiscretization = new ArrayList<String>();
             for (final Float value : secondIterationValues.getValuesContinous()) {
                 if (value < secondIterationValues.getThresholds().get(i)) {
@@ -79,13 +79,13 @@ public class Main {
                     testingDiscretization.add("B");
                 }
             }
-            calculateGainForPair(secondIterationTarget.getValues(), testingDiscretization, targetEntropy,secondIterationValues.getThresholds().get(i) );
+            calculateGainForPair(secondIterationTarget.getValues(), testingDiscretization, (float) 0.91, secondIterationValues.getThresholds().get(i));
             System.out.println("_______________________________________");
         }
 
     }
 
-    public static Float calculateGainForPair(final ArrayList<String> target, final ArrayList<String> attribute, float targetEntropy, float threshold) {
+    public static Float calculateGainForPair(final ArrayList<String> target, final ArrayList<String> attribute, final float targetEntropy, final float threshold) {
         final float occurancessAB = attribute.size();
         final float occurrencesA = Collections.frequency(attribute, "A");
         final float occurrencesB = Collections.frequency(attribute, "B");
@@ -99,28 +99,27 @@ public class Main {
 //        System.out.println("probability B = " + probB);
 
         // Divide target into 2 groups 1. a < threshold , 2. a > threshold
-        ArrayList<String> leftNode = new ArrayList<String>();
-        ArrayList<String> rightNode = new ArrayList<String>();
+        final ArrayList<String> leftNode = new ArrayList<String>();
+        final ArrayList<String> rightNode = new ArrayList<String>();
         int i = 0;
-        for(String value : attribute){
-            if(value.equals("A")){
+        for (final String value : attribute) {
+            if (value.equals("A")) {
                 leftNode.add(target.get(i));
-            } else{
+            } else {
                 rightNode.add(target.get(i));
             }
             i++;
         }
 
-        float entropyA = calculateEntropy(leftNode);
+        final float entropyA = calculateEntropy(leftNode);
         System.out.println("ENTROPY A = " + entropyA);
-        float entropyB = calculateEntropy(rightNode);
+        final float entropyB = calculateEntropy(rightNode);
         System.out.println("ENTROPY B = " + entropyB);
 
         //Calculate gain for the given threshold
-        float gain = targetEntropy - (probA*entropyA) - (probB*entropyB);
+        final float gain = targetEntropy - (probA * entropyA) - (probB * entropyB);
         System.out.println("Threshold = " + threshold);
         System.out.println("INFORMATION GAIN = " + gain);
-
 
 
         final HashMap<String, Float> a = countOcc(target, attribute, "A");
@@ -136,9 +135,9 @@ public class Main {
         final Set<String> uniqueValues = new HashSet<String>(target);
         final HashMap<String, Float> countMap = new HashMap<String, Float>();
         //initialise hashmap with decision classes as the keys
-        for (final String className : uniqueValues) {
-            countMap.put(className, (float) 0L);
-        }
+//        for (final String className : uniqueValues) {
+//            countMap.put(className, (float) 0L);
+//        }
         // count occurrences of decision classes
         int i = 0;
         for (final String label : target) {
@@ -173,7 +172,7 @@ public class Main {
 
 
     public static Float calculateEntropy(final ArrayList<String> data) {
-        float numberOfSamples = data.size();
+        final float numberOfSamples = data.size();
         // count occurrences of each decision class
         final HashMap<String, Long> countMap = new HashMap<String, Long>();
         for (final String label : data) {
