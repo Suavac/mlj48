@@ -27,23 +27,18 @@ public class MainEntry {
         float B = g.ossucranceB.size();
 
         // |AuB| - number of possible class labels in entire set
-        TreeSet<String> uniqueAttributeNames = new TreeSet<String>();
+        TreeSet<String> classesNames = new TreeSet<String>();
         Set a = g.ossucranceA.keySet();
         Set b = g.ossucranceB.keySet();
-        uniqueAttributeNames.addAll(a);
-        uniqueAttributeNames.addAll(b);
-        float AB = uniqueAttributeNames.size();
+        classesNames.addAll(a);
+        classesNames.addAll(b);
+        float AuB = classesNames.size();
 
-        float log2N = (1/N)*(float)(Math.log(N-1)/Math.log(2));
-        float log2Second = (float) (Math.log(Math.pow(3,AB)-2)/Math.log(2));
+        float leftSideOfFormula = ((1/N)*(float)(Math.log(N-1)/Math.log(2)))  +
+                (1/N)*((float)(Math.log(Math.pow(3,AuB)-2)/Math.log(2)) - (AuB*entropyAB) - (A*entropyA) - (B*entropyB));
 
-        float leftSideOfFormulea = ((1/N)*(float)(Math.log(N-1)/Math.log(2)))  +
-                (1/N)*((float)(Math.log(Math.pow(3,AB)-2)/Math.log(2)) - (AB*entropyAB) - (A*entropyA) - (B*entropyB));
-
-               // ( ((1/N)*((Math.log(Math.pow(3,AB))-2)/Math.log(2))) - (AB*entropyAB) - A*entropyA - B*entropyAB);
-
-        System.out.println(leftSideOfFormulea);
-        return gain >= leftSideOfFormulea;
+        System.out.println("MDL PRINCIPLE " + leftSideOfFormula);
+        return gain >= leftSideOfFormula;
 
     }
 
@@ -52,29 +47,21 @@ public class MainEntry {
         final PreprocessData ppd = new PreprocessData("owls15.csv");
         final HashMap<String, Attribute> attributes = ppd.getAttributes();
         System.out.println(ppd.getAttributes().size());
-        final Attribute targetAttribute = attributes.get("type");
-        System.out.println(ppd.getAttributes().size());
+        // choose target - assuming that target is a last column
+        final Attribute targetAttribute = attributes.get(ppd.getTargetName());
+
+
         Gain finalGain=null;
+
         for(int i = 0; i< ppd.getAttributes().size()-1;i++){
             // choose attribute
             final String attributeName = ppd.getAttributeNames().get(i);
-            final Attribute a = attributes.get(attributeName);
-            // choose target
-            // convert attribute to numeric values
-            //a.convertCont();
-
+            final Attribute attribute = attributes.get(attributeName);
             // Calculate Target Entropy
             final float targetEntropy = calculateEntropy(targetAttribute.getValues());
             System.out.println("TARGET ENTROPY = " + targetEntropy);
 
-            // Create thresholds for an attribute data
-            createThresholdsForAttribute(attributes.get(attributeName));
-            //System.out.println(a.getThresholds().size());
-            //System.out.println(a.getThresholds());
-
-            // Get values of an attribute as numerical data
-            final ArrayList<? extends Serializable> bContin = (a.isContinuous()) ? a.getValues() : a.getValues();
-            final Gain gainofAnAttribute = getGain(a, targetAttribute, targetEntropy, bContin);
+            final Gain gainofAnAttribute = getGain(attribute, targetAttribute, targetEntropy);
             //final ArrayList<Integer> o = finalGain.getRedundant();
             if(finalGain==null){
                 finalGain=gainofAnAttribute;
@@ -144,18 +131,22 @@ public class MainEntry {
 
     }
 
-    private static Gain getGain(final Attribute attribute, final Attribute classLabels, final float targetEntropy, final ArrayList<? extends Serializable> bContin) {
+    private static Gain getGain(final Attribute attribute, final Attribute classLabels, final float targetEntropy) {
+
+        final ArrayList<? extends Serializable> attributeValues = attribute.getValues();
         ArrayList<String> testingDiscretization;
 
+        // Create thresholds for an attribute data
+        createThresholdsForAttribute(attribute);
         Gain finalGain = new Gain();
+        ArrayList<Float> thresholds = createThresholdsForAttribute(attribute);
 
-
-        for (int i = 0; i < attribute.getThresholds().size(); i++) {
+        for (int i = 0; i < thresholds.size(); i++) {
             testingDiscretization = new ArrayList<String>();
 
 
-            for (final Serializable value : bContin) {
-                if (Float.parseFloat(value.toString()) < attribute.getThresholds().get(i)) {
+            for (final Serializable value : attributeValues) {
+                if (Float.parseFloat(value.toString()) < thresholds.get(i)) {
                     testingDiscretization.add("A");
 
                 } else {
@@ -164,7 +155,7 @@ public class MainEntry {
                 }
 
             }
-            final Gain tmp = calculateGainForPair(classLabels.getValues(), attribute.getName(),testingDiscretization, targetEntropy, attribute.getThresholds().get(i));
+            final Gain tmp = calculateGainForPair(classLabels.getValues(), attribute.getName(),testingDiscretization, targetEntropy, thresholds.get(i));
 
             if (tmp.getGain() > finalGain.getGain()) {
                 finalGain = tmp;
@@ -257,17 +248,18 @@ public class MainEntry {
         return countMap;
     }
 
-    public static void createThresholdsForAttribute(final Attribute attribute) {
+    public static ArrayList<Float> createThresholdsForAttribute(final Attribute attribute) {
         // get unique values from the attribute's values collection
         final TreeSet<Float> uniqueValues = new TreeSet<Float>((Collection<? extends Float>) attribute.getValues());
         // convert to ArrayList
-        final ArrayList<Float> a = new ArrayList<Float>(uniqueValues);
+        final ArrayList<Float> values = new ArrayList<Float>(uniqueValues);
         final ArrayList<Float> thresholds = new ArrayList<Float>();
         // Calculate and store thresholds
         for (int i = 0; i < uniqueValues.size() - 1; i++) {
-            thresholds.add((a.get(i) + a.get(i + 1)) / 2);
+            thresholds.add((values.get(i) + values.get(i + 1)) / 2);
         }
-        attribute.storeThresholds(thresholds);
+
+        return thresholds;
     }
 
 

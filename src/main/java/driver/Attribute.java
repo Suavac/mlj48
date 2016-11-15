@@ -13,7 +13,7 @@ public class Attribute {
     private final String name;
     private final ArrayList<Serializable> valuesAlphaNumeric = new ArrayList<Serializable>();
     private final ArrayList<Float> valuesNumeric = new ArrayList<Float>();
-    private ArrayList<Float> thresholds = new ArrayList<Float>();
+
 
     private MutableBoolean isContinuous = null;
 
@@ -56,13 +56,6 @@ public class Attribute {
         return valuesNumeric;
     }
 
-    public void storeThresholds(final ArrayList<Float> thresholds) {
-        this.thresholds = thresholds;
-    }
-
-    public ArrayList<Float> getThresholds() {
-        return this.thresholds;
-    }
 
     public void convertCont() {
         for (final Serializable value : valuesAlphaNumeric) {
