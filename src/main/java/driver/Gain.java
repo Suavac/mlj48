@@ -19,7 +19,8 @@ public class Gain {
     ArrayList<Integer> indexListA;
     ArrayList<Integer> indexListB;
 
-    public Gain(final float entropyA, final float entropyB, final float threshold, final float gain, final HashMap<Serializable, Float> a, final HashMap<Serializable, Float> b, final ArrayList<Integer> indexListA, final ArrayList<Integer> indexListB) {
+    public Gain(final String attributeName, final float entropyA, final float entropyB, final float threshold, final float gain, final HashMap<Serializable, Float> a, final HashMap<Serializable, Float> b, final ArrayList<Integer> indexListA, final ArrayList<Integer> indexListB) {
+        this.attributeName = attributeName;
         this.entropyA = entropyA;
         this.entropyB = entropyB;
         this.threshold = threshold;
@@ -45,5 +46,16 @@ public class Gain {
 
     public float getEntropy() {
         return this.entropyB;
+    }
+
+    public float getEntropyA(){
+        return entropyA;
+    }
+    public float getEntropyB(){
+        return entropyB;
+    }
+
+    public String getAttributeName() {
+        return attributeName;
     }
 }

@@ -1,6 +1,6 @@
 package dataReader;
 
-import driver.Main;
+import driver.MainEntry;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -23,8 +23,8 @@ public class CSVReader {
 
     public CSVReader() throws IOException {
         // Get and read File
-        final ClassLoader classLoader = new Main().getClass().getClassLoader();
-        final File file = new File(classLoader.getResource("owls15.csv").getFile());
+        //final ClassLoader classLoader = new MainEntry().getClass().getClassLoader();
+        final File file = new File(getClass().getClassLoader().getResource("owls15.csv").getFile());
         final Reader fileReader = new FileReader(file);
         // Parse file
         // Iterable<CSVRecord> instances  = csvFileParser;

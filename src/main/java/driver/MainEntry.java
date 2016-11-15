@@ -6,54 +6,107 @@ import java.util.*;
 /**
  * Created by 12100888 on 07/11/2016.
  */
-public class Main {
+public class MainEntry {
+
+    public static boolean getMDL(Gain g){
+//      gain >= (1/N) x log2(N-1) + (1/N) x [ log2 ((3^|AuB|)-2) - ( |AuB| x Entropy(A+B) – |A| x Entropy(A) – |B| x Entropy(B) ]
+//      where:
+//      N - number of samples in the set
+//      A - subset of values < threshold
+//      B -  subset of values > threshold
+//      |AuB| - number of possible class labels in entire set
+//      |A| - in subset A
+//      |B| - in subset B
+        float gain = g.getGain();
+        float entropyA = g.getEntropyA();
+        float entropyB = g.getEntropyB();
+        float entropyAB = g.getEntropy();
+
+        float N = g.indexListA.size()+g.indexListB.size();
+        float A = g.ossucranceA.size();
+        float B = g.ossucranceB.size();
+
+        // |AuB| - number of possible class labels in entire set
+        TreeSet<String> uniqueAttributeNames = new TreeSet<String>();
+        Set a = g.ossucranceA.keySet();
+        Set b = g.ossucranceB.keySet();
+        uniqueAttributeNames.addAll(a);
+        uniqueAttributeNames.addAll(b);
+        float AB = uniqueAttributeNames.size();
+
+        float log2N = (1/N)*(float)(Math.log(N-1)/Math.log(2));
+        float log2Second = (float) (Math.log(Math.pow(3,AB)-2)/Math.log(2));
+
+        float leftSideOfFormulea = ((1/N)*(float)(Math.log(N-1)/Math.log(2)))  +
+                (1/N)*((float)(Math.log(Math.pow(3,AB)-2)/Math.log(2)) - (AB*entropyAB) - (A*entropyA) - (B*entropyB));
+
+               // ( ((1/N)*((Math.log(Math.pow(3,AB))-2)/Math.log(2))) - (AB*entropyAB) - A*entropyA - B*entropyAB);
+
+        System.out.println(leftSideOfFormulea);
+        return gain >= leftSideOfFormulea;
+
+    }
 
     public static void main(final String... args) throws Exception {
 ///http://clear-lines.com/blog/post/Discretizing-a-continuous-variable-using-Entropy.aspx
         final PreprocessData ppd = new PreprocessData("owls15.csv");
         final HashMap<String, Attribute> attributes = ppd.getAttributes();
-
-        // choose attribute
-        final String attributeName = ppd.getAttributeNames().get(3);
-        final Attribute a = attributes.get(attributeName);
-        // choose target
+        System.out.println(ppd.getAttributes().size());
         final Attribute targetAttribute = attributes.get("type");
+        System.out.println(ppd.getAttributes().size());
+        Gain finalGain=null;
+        for(int i = 0; i< ppd.getAttributes().size()-1;i++){
+            // choose attribute
+            final String attributeName = ppd.getAttributeNames().get(i);
+            final Attribute a = attributes.get(attributeName);
+            // choose target
+            // convert attribute to numeric values
+            //a.convertCont();
 
-        // convert attribute to numeric values
-        //a.convertCont();
+            // Calculate Target Entropy
+            final float targetEntropy = calculateEntropy(targetAttribute.getValues());
+            System.out.println("TARGET ENTROPY = " + targetEntropy);
 
-        // Calculate Target Entropy
-        final float targetEntropy = calculateEntropy(targetAttribute.getValues());
-        System.out.println("TARGET ENTROPY = " + targetEntropy);
+            // Create thresholds for an attribute data
+            createThresholdsForAttribute(attributes.get(attributeName));
+            //System.out.println(a.getThresholds().size());
+            //System.out.println(a.getThresholds());
 
-        // Create thresholds for an attribute data
-        createThresholdsForAttribute(attributes.get(attributeName));
-        //System.out.println(a.getThresholds().size());
-        //System.out.println(a.getThresholds());
+            // Get values of an attribute as numerical data
+            final ArrayList<? extends Serializable> bContin = (a.isContinuous()) ? a.getValues() : a.getValues();
+            final Gain gainofAnAttribute = getGain(a, targetAttribute, targetEntropy, bContin);
+            //final ArrayList<Integer> o = finalGain.getRedundant();
+            if(finalGain==null){
+                finalGain=gainofAnAttribute;
+            } else if(gainofAnAttribute.getGain()>=finalGain.getGain()){
+                finalGain=gainofAnAttribute;
+            }
 
-        // Get values of an attribute as numerical data
-        final ArrayList<? extends Serializable> bContin = (a.isContinuous()) ? a.getValues() : a.getValues();
-        final Gain finalGain = getGain(a, targetAttribute, targetEntropy, bContin);
-        final ArrayList<Integer> o = finalGain.getRedundant();
-        //final ArrayList<Integer> p = finalGain.getRedundant();
-        System.out.println(o);
-        for (final int iooo : o) {
-            a.remove(iooo);
-            targetAttribute.remove(iooo);
         }
 
+        System.out.println(finalGain.getAttributeName() + " " +finalGain.getGain());
+        System.out.println(getMDL(finalGain));
 
-        createThresholdsForAttribute(attributes.get(attributeName));
-        final float targetEntropy2 = targetEntropy - finalGain.getEntropy();
-        final ArrayList<? extends Serializable> bContin2 = (a.isContinuous()) ? a.getValues() : a.getValues();
-        final Gain finalGain2 = getGain(a, targetAttribute, targetEntropy2, bContin);
-        final ArrayList<Integer> o2 = finalGain2.getRedundant();
+
         //final ArrayList<Integer> p = finalGain.getRedundant();
-        System.out.println(o2);
-        for (final int iooo : o) {
-            a.remove(iooo);
-            targetAttribute.remove(iooo);
-        }
+//        System.out.println(o);
+//        for (final int iooo : o) {
+//            a.remove(iooo);
+//            targetAttribute.remove(iooo);
+//        }
+
+//
+//        createThresholdsForAttribute(attributes.get(attributeName));
+//        final float targetEntropy2 = targetEntropy - finalGain.getEntropy();
+//        final ArrayList<? extends Serializable> bContin2 = (a.isContinuous()) ? a.getValues() : a.getValues();
+//        final Gain finalGain2 = getGain(a, targetAttribute, targetEntropy2, bContin);
+//        final ArrayList<Integer> o2 = finalGain2.getRedundant();
+//        //final ArrayList<Integer> p = finalGain.getRedundant();
+//        System.out.println(o2);
+//        for (final int iooo : o) {
+//            a.remove(iooo);
+//            targetAttribute.remove(iooo);
+//        }
 
         //AFTER SHRIKING
 
@@ -96,6 +149,7 @@ public class Main {
 
         Gain finalGain = new Gain();
 
+
         for (int i = 0; i < attribute.getThresholds().size(); i++) {
             testingDiscretization = new ArrayList<String>();
 
@@ -110,19 +164,19 @@ public class Main {
                 }
 
             }
-            final Gain tmp = calculateGainForPair(classLabels.getValues(), testingDiscretization, targetEntropy, attribute.getThresholds().get(i));
+            final Gain tmp = calculateGainForPair(classLabels.getValues(), attribute.getName(),testingDiscretization, targetEntropy, attribute.getThresholds().get(i));
 
             if (tmp.getGain() > finalGain.getGain()) {
                 finalGain = tmp;
             }
             //System.out.println(indexListA.size() + " " + indexListA);
             //System.out.println(indexListB.size() + " " + indexListB);
-            System.out.println("_______________________________________");
+            //System.out.println("_______________________________________");
         }
         return finalGain;
     }
 
-    public static Gain calculateGainForPair(final ArrayList<? extends Serializable> target, final ArrayList<String> attribute, final float targetEntropy, final float threshold) {
+    public static Gain calculateGainForPair(final ArrayList<? extends Serializable> target, final String attributeName, final ArrayList<String> attribute, final float targetEntropy, final float threshold) {
         final float occurancesAB = attribute.size();
         final float occurrencesA = Collections.frequency(attribute, "A");
         final float occurrencesB = Collections.frequency(attribute, "B");
@@ -157,22 +211,22 @@ public class Main {
 
 
         final float entropyA = calculateEntropy(leftNode);
-        System.out.println("ENTROPY A = " + entropyA);
+        //System.out.println("ENTROPY A = " + entropyA);
         final float entropyB = calculateEntropy(rightNode);
-        System.out.println("ENTROPY B = " + entropyB);
+        //System.out.println("ENTROPY B = " + entropyB);
 
         //Calculate gain for the given threshold
         final float gain = targetEntropy - (probA * entropyA) - (probB * entropyB);
-        System.out.println("Threshold = " + threshold);
-        System.out.println("INFORMATION GAIN = " + gain);
+        //System.out.println("Threshold = " + threshold);
+        //System.out.println("INFORMATION GAIN = " + gain);
 
 
         final HashMap<Serializable, Float> a = countDecisionClassLabels(target, attribute, "A");
         final HashMap<Serializable, Float> b = countDecisionClassLabels(target, attribute, "B");
-        System.out.println("OCCURANCES MATRIX A = " + a);
-        System.out.println("OCCURANCES MATRIX B = " + b);
+        //System.out.println("OCCURANCES MATRIX A = " + a);
+        //System.out.println("OCCURANCES MATRIX B = " + b);
 
-        return new Gain(entropyA, entropyB, threshold, gain, a, b, indexListA, indexListB);
+        return new Gain(attributeName, entropyA, entropyB, threshold, gain, a, b, indexListA, indexListB);
     }
 
     /**
