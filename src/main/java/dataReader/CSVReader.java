@@ -10,6 +10,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by 12100888 on 08/11/2016.
@@ -18,6 +19,7 @@ public class CSVReader {
 
     private final CSVParser csvFileParser; // this is object of type iterable
     private final Iterable<CSVRecord> records;
+    private final List<CSVRecord> csvRecordList;
 
     public CSVReader() throws IOException {
         // Get and read File
@@ -29,6 +31,8 @@ public class CSVReader {
         final CSVFormat csvFileFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader();
         this.csvFileParser = new CSVParser(fileReader, csvFileFormat);
         this.records = csvFileParser;
+        this.csvRecordList = csvFileParser.getRecords();
+
     }
 
     public ArrayList<String> getAttributeNames() {
@@ -36,6 +40,6 @@ public class CSVReader {
     }
 
     public Iterable<CSVRecord> getDataSet() {
-        return this.records;
+        return this.csvRecordList;
     }
 }

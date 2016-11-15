@@ -11,37 +11,45 @@ import java.util.HashMap;
  */
 public class PreprocessData {
 
-    private CSVReader data;
-
+    private final CSVReader data;
+    private final ArrayList<String> attributeNames;
+    private final String targetName;
     final HashMap<String, Attribute> attributes;
 
-    public PreprocessData(String filePath) throws Exception {
+    public PreprocessData(final String filePath) throws Exception {
 
-        if(filePath.toLowerCase().endsWith(".csv")){
+        if (filePath.toLowerCase().endsWith(".csv")) {
             this.data = new CSVReader();
         } else {
             throw new Exception("Data Format not supported");
         }
 
-        // Extract Attribute names
-        final ArrayList<String> attributeList = this.data.getAttributeNames();
-        //assuming here that last column is a decision class
-        final String testClass = attributeList.get(attributeList.size() - 1);
+        attributeNames = data.getAttributeNames();
+
         attributes = new HashMap<String, Attribute>();
-        for (final String attributeName : attributeList) {
+        for (final String attributeName : attributeNames) {
             attributes.put(attributeName, new Attribute(attributeName));
         }
 
-        extractAttributes(data.getDataSet(), attributeList, attributes);
+        extractAttributes(data.getDataSet(), attributeNames, attributes);
+        targetName = attributeNames.remove(attributeNames.size() - 1);
+        createTargetAttribute(targetName);
+    }
+
+    private void createTargetAttribute(final String targetName) {
 
     }
 
-    public HashMap<String,Attribute> getAttributes() {
+    public HashMap<String, Attribute> getAttributes() {
         return attributes;
     }
 
     public ArrayList<String> getAttributeNames() {
-        return this.data.getAttributeNames();
+        return this.attributeNames;
+    }
+
+    public String getTargetName() {
+        return this.targetName;
     }
 
     public Object getDecisionClass() {
@@ -51,14 +59,21 @@ public class PreprocessData {
 
     //http://www.saedsayad.com/decision_tree.htm
     //Extract values of each attribute
-    public static void extractAttributes(final Iterable<CSVRecord> dataRecords, final ArrayList<String> attributeList, final HashMap<String, Attribute> atributes) {
-        for (final CSVRecord record : dataRecords) {
-            for (final String attributeName : attributeList) {
+    public static void extractAttributes(final Iterable<CSVRecord> dataRecords, final ArrayList<String> attributeNames, final HashMap<String, Attribute> atributes) {
+
+        for (final String attributeName : attributeNames) {
+            for (final CSVRecord record : dataRecords) {
                 final Attribute tmp = atributes.get(attributeName);
                 tmp.addValue(record.get(attributeName));
             }
-
         }
+
+//        for (final CSVRecord record : dataRecords) {
+//            for (final String attributeName : attributeList) {
+//                final Attribute tmp = atributes.get(attributeName);
+//                tmp.addValue(record.get(attributeName));
+//            }
+//        }
     }
 
     public Object getTargetAttribute() {

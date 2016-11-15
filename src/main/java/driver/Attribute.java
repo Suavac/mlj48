@@ -1,5 +1,8 @@
 package driver;
 
+import org.apache.commons.lang.mutable.MutableBoolean;
+
+import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
@@ -7,27 +10,53 @@ import java.util.ArrayList;
  */
 public class Attribute {
 
-    private String name;
-    private ArrayList<String> values = new ArrayList<String>();
-    private ArrayList<Float> valuesContinous = new ArrayList<Float>();
+    private final String name;
+    private final ArrayList<Serializable> valuesAlphaNumeric = new ArrayList<Serializable>();
+    private final ArrayList<Float> valuesNumeric = new ArrayList<Float>();
     private ArrayList<Float> thresholds = new ArrayList<Float>();
 
-    public Attribute(final String name){
+    private MutableBoolean isContinuous = null;
+
+    public Attribute(final String name) {
         this.name = name;
     }
 
-    public void addValue(String value){
-        values.add(value);
-    }
-    public ArrayList<String> getValues(){
-        return values;
+    /**
+     * Method checks if attribute consists of continuous values
+     *
+     * @return boolaen
+     */
+    public boolean isContinuous() {
+        if (this.isContinuous == null) {
+            isContinuous = new MutableBoolean();
+            for (final Serializable value : valuesAlphaNumeric) {
+                try {
+                    this.valuesNumeric.add(Float.parseFloat(String.valueOf(value)));
+                    this.isContinuous.setValue(true);
+                } catch (final NumberFormatException e) {
+                    this.isContinuous.setValue(false);
+                }
+            }
+        }
+        return this.isContinuous.booleanValue();
     }
 
-    public ArrayList<Float> getValuesContinous(){
-        return valuesContinous;
+    public void addValue(final Serializable value) {
+        valuesAlphaNumeric.add(value);
     }
 
-    public void storeThresholds(ArrayList<Float> thresholds) {
+    public final ArrayList<? extends Serializable> getValues() {
+        if (isContinuous()) {
+            return this.valuesNumeric;
+        }
+        return valuesAlphaNumeric;
+    }
+
+    public ArrayList<Float> getValuesContinous() {
+        return valuesNumeric;
+    }
+
+    public void storeThresholds(final ArrayList<Float> thresholds) {
         this.thresholds = thresholds;
     }
 
@@ -35,9 +64,19 @@ public class Attribute {
         return this.thresholds;
     }
 
-    public void convertCont(){
-        for(String value : values){
-            valuesContinous.add(Float.parseFloat(value));
+    public void convertCont() {
+        for (final Serializable value : valuesAlphaNumeric) {
+            valuesNumeric.add(Float.parseFloat((String) value));
+        }
+
+    }
+
+    public void remove(final int i) {
+        try {
+            valuesAlphaNumeric.remove(i);
+            valuesNumeric.remove(i);
+        } catch (final Exception e) {
+
         }
 
     }
