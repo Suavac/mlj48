@@ -9,14 +9,14 @@ import java.util.HashMap;
 /**
  * Created by 12100888 on 08/11/2016.
  */
-public class PreprocessData {
+public class PreprocessedData {
 
     private final CSVReader data;
     private final ArrayList<String> attributeNames;
     private final String targetName;
     final HashMap<String, Attribute> attributes;
 
-    public PreprocessData(final String filePath) throws Exception {
+    public PreprocessedData(final String filePath) throws Exception {
 
         if (filePath.toLowerCase().endsWith(".csv")) {
             this.data = new CSVReader();
@@ -59,11 +59,11 @@ public class PreprocessData {
 
     //http://www.saedsayad.com/decision_tree.htm
     //Extract values of each attribute
-    public static void extractAttributes(final Iterable<CSVRecord> dataRecords, final ArrayList<String> attributeNames, final HashMap<String, Attribute> atributes) {
+    public static void extractAttributes(final Iterable<CSVRecord> dataRecords, final ArrayList<String> attributeNames, final HashMap<String, Attribute> attributes) {
 
         for (final String attributeName : attributeNames) {
             for (final CSVRecord record : dataRecords) {
-                final Attribute tmp = atributes.get(attributeName);
+                final Attribute tmp = attributes.get(attributeName);
                 tmp.addValue(record.get(attributeName));
             }
         }

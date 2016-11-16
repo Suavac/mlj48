@@ -36,8 +36,16 @@ public class Gain {
     }
 
     public ArrayList<Integer> getRedundant() {
-        Collections.reverse(indexListA);
-        return indexListA;
+        try {
+            if (entropyA < entropyB) {
+                Collections.sort(indexListA, Collections.reverseOrder());
+                return indexListA;
+            }
+            Collections.sort(indexListB, Collections.reverseOrder());
+        } catch (final Exception e) {
+
+        }
+        return indexListB;
     }
 
     public float getGain() {
@@ -48,14 +56,21 @@ public class Gain {
         return this.entropyB;
     }
 
-    public float getEntropyA(){
+    public float getEntropyA() {
         return entropyA;
     }
-    public float getEntropyB(){
+
+    public float getEntropyB() {
         return entropyB;
+    }
+
+    public float getThreshold() {
+        return threshold;
     }
 
     public String getAttributeName() {
         return attributeName;
     }
+
+    
 }

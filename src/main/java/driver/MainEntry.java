@@ -8,128 +8,101 @@ import java.util.*;
  */
 public class MainEntry {
 
-    public static boolean getMDL(Gain g){
-//      gain >= (1/N) x log2(N-1) + (1/N) x [ log2 ((3^|AuB|)-2) - ( |AuB| x Entropy(A+B) – |A| x Entropy(A) – |B| x Entropy(B) ]
-//      where:
-//      N - number of samples in the set
-//      A - subset of values < threshold
-//      B -  subset of values > threshold
-//      |AuB| - number of possible class labels in entire set
-//      |A| - in subset A
-//      |B| - in subset B
-        float gain = g.getGain();
-        float entropyA = g.getEntropyA();
-        float entropyB = g.getEntropyB();
-        float entropyAB = g.getEntropy();
+    private final HashMap<String, MainEntry> tree = new HashMap<String, MainEntry>();
 
-        float N = g.indexListA.size()+g.indexListB.size();
-        float A = g.ossucranceA.size();
-        float B = g.ossucranceB.size();
-
-        // |AuB| - number of possible class labels in entire set
-        TreeSet<String> classesNames = new TreeSet<String>();
-        Set a = g.ossucranceA.keySet();
-        Set b = g.ossucranceB.keySet();
-        classesNames.addAll(a);
-        classesNames.addAll(b);
-        float AuB = classesNames.size();
-
-        float leftSideOfFormula = ((1/N)*(float)(Math.log(N-1)/Math.log(2)))  +
-                (1/N)*((float)(Math.log(Math.pow(3,AuB)-2)/Math.log(2)) - (AuB*entropyAB) - (A*entropyA) - (B*entropyB));
-
-        System.out.println("MDL PRINCIPLE " + leftSideOfFormula);
-        return gain >= leftSideOfFormula;
-
-    }
-
-    public static void main(final String... args) throws Exception {
-///http://clear-lines.com/blog/post/Discretizing-a-continuous-variable-using-Entropy.aspx
-        final PreprocessData ppd = new PreprocessData("owls15.csv");
-        final HashMap<String, Attribute> attributes = ppd.getAttributes();
-        System.out.println(ppd.getAttributes().size());
-        // choose target - assuming that target is a last column
-        final Attribute targetAttribute = attributes.get(ppd.getTargetName());
+    public MainEntry(final HashMap<String, Attribute> attributes, final ArrayList<String> attributeNames, final Attribute targetAttribute) {
 
 
-        Gain finalGain=null;
+        Gain finalGain = null;
 
-        for(int i = 0; i< ppd.getAttributes().size()-1;i++){
+        finalGain = null;
+        for (int i = 0; i < attributeNames.size(); i++) {
             // choose attribute
-            final String attributeName = ppd.getAttributeNames().get(i);
+            final String attributeName = attributeNames.get(i);
             final Attribute attribute = attributes.get(attributeName);
             // Calculate Target Entropy
             final float targetEntropy = calculateEntropy(targetAttribute.getValues());
-            System.out.println("TARGET ENTROPY = " + targetEntropy);
-
-            final Gain gainofAnAttribute = getGain(attribute, targetAttribute, targetEntropy);
+            //System.out.println("TARGET ENTROPY = " + targetEntropy);
+            //getSubsetOfData(attributes);
+            final Gain gainOfAnAttribute = getGain(attribute, targetAttribute, targetEntropy);
             //final ArrayList<Integer> o = finalGain.getRedundant();
-            if(finalGain==null){
-                finalGain=gainofAnAttribute;
-            } else if(gainofAnAttribute.getGain()>=finalGain.getGain()){
-                finalGain=gainofAnAttribute;
+            if (finalGain == null) {
+                finalGain = gainOfAnAttribute;
+            } else if (gainOfAnAttribute.getGain() >= finalGain.getGain()) {
+                finalGain = gainOfAnAttribute;
             }
 
         }
 
-        System.out.println(finalGain.getAttributeName() + " " +finalGain.getGain());
-        System.out.println(getMDL(finalGain));
+        final ArrayList<Integer> indexesOfRedundantValues = finalGain.getRedundant();
+        for (int j = 0; j < attributes.size() - 1; j++) {
+            for (final int k : indexesOfRedundantValues) {
+                final Attribute a = attributes.get(attributeNames.get(j));
+                a.remove(k);
+            }
+        }
+        for (final int k : indexesOfRedundantValues) {
+            final Attribute a = attributes.get(targetAttribute.getName());
+            a.remove(k);
+        }
+
+        System.out.println("Feature: " + finalGain.getAttributeName() + "\nGAIN: " + finalGain.getGain());
+        final float mdlprinc = getMDL(finalGain);
+        final float gain = finalGain.getGain();
+        //System.out.println(mdlprinc);
 
 
-        //final ArrayList<Integer> p = finalGain.getRedundant();
-//        System.out.println(o);
-//        for (final int iooo : o) {
-//            a.remove(iooo);
-//            targetAttribute.remove(iooo);
-//        }
+        if (finalGain.getEntropy() > 0)
+            this.tree.put(finalGain.getAttributeName(), new MainEntry(attributes, attributeNames, targetAttribute));
 
-//
-//        createThresholdsForAttribute(attributes.get(attributeName));
-//        final float targetEntropy2 = targetEntropy - finalGain.getEntropy();
-//        final ArrayList<? extends Serializable> bContin2 = (a.isContinuous()) ? a.getValues() : a.getValues();
-//        final Gain finalGain2 = getGain(a, targetAttribute, targetEntropy2, bContin);
-//        final ArrayList<Integer> o2 = finalGain2.getRedundant();
-//        //final ArrayList<Integer> p = finalGain.getRedundant();
-//        System.out.println(o2);
-//        for (final int iooo : o) {
-//            a.remove(iooo);
-//            targetAttribute.remove(iooo);
-//        }
-
-        //AFTER SHRIKING
-
-//        final ArrayList<Float> shrinkedData = new ArrayList<Float>();
-//        final ArrayList<String> shrinkedTarget = new ArrayList<String>();
-//        final Attribute secondIterationValues = new Attribute("secondIteration");
-//        final Attribute secondIterationTarget = new Attribute("secondIterationTarget");
-//        int uu = 0;
-//        for (final Serializable aui : bContin) {
-//            if (Float.parseFloat(aui.toString()) > 0.8) {
-//                secondIterationValues.addValue(aui.toString());
-//                shrinkedData.add(Float.parseFloat(aui.toString()));
-//                secondIterationTarget.addValue(targetAttribute.getValues().get(uu));
-//            }
-//            uu++;
-//        }
-//        secondIterationValues.convertCont();
-//        createThresholdsForAttribute(secondIterationValues);
-//
-//
-//        ArrayList<String> testingDiscretization;
-//
-//        for (int i = 0; i < secondIterationValues.getThresholds().size(); i++) {
-//            testingDiscretization = new ArrayList<String>();
-//            for (final Float value : secondIterationValues.getValuesContinous()) {
-//                if (value < secondIterationValues.getThresholds().get(i)) {
-//                    testingDiscretization.add("A");
-//                } else {
-//                    testingDiscretization.add("B");
-//                }
-//            }
-//            calculateGainForPair(secondIterationTarget.getValues(), testingDiscretization, targetEntropy, secondIterationValues.getThresholds().get(i));
-//            System.out.println("_______________________________________");
-//        }
 
     }
+
+    /**
+     * Method calculates split criterion based on mdl principle
+     * <p>
+     * gain >= (1/N) x log2(N-1) + (1/N) x [ log2 ((3^|AuB|)-2) - ( |AuB| x Entropy(A+B) &ndash; |A| x Entropy(A) &ndash; |B| x Entropy(B) ]
+     * where:
+     * N - number of samples in the set
+     * A - subset of values < threshold
+     * B -  subset of values > threshold
+     * |AuB| - number of possible class labels in entire set
+     * |A| - in subset A
+     * |B| - in subset B
+     *
+     * @param gain
+     * @return boolean
+     */
+    public static float getMDL(final Gain gain) {
+
+        final float gainValue = gain.getGain();
+        final float entropyA = gain.getEntropyA();
+        final float entropyB = gain.getEntropyB();
+        final float entropyAB = gain.getEntropy();
+
+        final float N = gain.indexListA.size() + gain.indexListB.size();
+        final float A = gain.ossucranceA.size();
+        final float B = gain.ossucranceB.size();
+        // |AuB| - number of possible class labels in entire set
+        final TreeSet<String> classesNames = new TreeSet<String>();
+        final Set a = gain.ossucranceA.keySet();
+        final Set b = gain.ossucranceB.keySet();
+        classesNames.addAll(a);
+        classesNames.addAll(b);
+        final float AuB = classesNames.size();
+
+        final float leftSideOfFormula = ((1 / N) * (float) (Math.log(N - 1) / Math.log(2))) +
+                (1 / N) * ((float) (Math.log(Math.pow(3, AuB) - 2) / Math.log(2)) - (AuB * entropyAB) - (A * entropyA) - (B * entropyB));
+        final boolean isSplit = (gainValue >= leftSideOfFormula);
+        System.out.println("MDL: " + leftSideOfFormula + "\nsplit:" + isSplit + "\nThreshold " + gain.getThreshold() + "\n");
+        return leftSideOfFormula;
+    }
+
+    public static HashMap<String, Attribute> getSubsetOfData(final HashMap<String, Attribute> attributes) {
+        //System.out.println("MDL PRINCIPLE " + attributes.keySet());
+        return null;
+    }
+
 
     private static Gain getGain(final Attribute attribute, final Attribute classLabels, final float targetEntropy) {
 
@@ -139,7 +112,7 @@ public class MainEntry {
         // Create thresholds for an attribute data
         createThresholdsForAttribute(attribute);
         Gain finalGain = new Gain();
-        ArrayList<Float> thresholds = createThresholdsForAttribute(attribute);
+        final ArrayList<Float> thresholds = createThresholdsForAttribute(attribute);
 
         for (int i = 0; i < thresholds.size(); i++) {
             testingDiscretization = new ArrayList<String>();
@@ -155,7 +128,7 @@ public class MainEntry {
                 }
 
             }
-            final Gain tmp = calculateGainForPair(classLabels.getValues(), attribute.getName(),testingDiscretization, targetEntropy, thresholds.get(i));
+            final Gain tmp = calculateGainForPair(classLabels.getValues(), attribute.getName(), testingDiscretization, targetEntropy, thresholds.get(i));
 
             if (tmp.getGain() > finalGain.getGain()) {
                 finalGain = tmp;
