@@ -8,7 +8,7 @@ import java.util.ArrayList;
 /**
  * Created by 12100888 on 07/11/2016.
  */
-public class Attribute {
+public class Attribute implements Serializable {
 
     private final String name;
     private final ArrayList<Serializable> valuesAlphaNumeric = new ArrayList<Serializable>();

@@ -21,6 +21,7 @@ public class Driver {
 
 
         final MainEntry tree = new MainEntry(attributes, attributeNames, targetAttribute);
+        tree.toString();
         final String a = "sdsd";
         final int i = 0;
     }

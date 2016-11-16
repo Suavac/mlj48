@@ -1,5 +1,7 @@
 package driver;
 
+import org.apache.commons.lang.SerializationUtils;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,6 +37,25 @@ public class Gain {
 
     }
 
+
+    public final HashMap<String, Attribute> getSubset(HashMap<String, Attribute> attributes,final ArrayList<String> attributeNames, Attribute target) {
+
+        final ArrayList<Integer> indexesOfRedundantValues = getRedundant();
+        for (int j = 0; j < attributes.size() - 1; j++) {
+            for (final int k : indexesOfRedundantValues) {
+                final Attribute a = attributes.get(attributeNames.get(j));
+                a.remove(k);
+            }
+        }
+        for (final int k : indexesOfRedundantValues) {
+            final Attribute a = attributes.get(target.getName());
+            a.remove(k);
+        }
+
+
+        return null;
+    }
+
     public ArrayList<Integer> getRedundant() {
         try {
             if (entropyA < entropyB) {
@@ -47,6 +68,8 @@ public class Gain {
         }
         return indexListB;
     }
+
+
 
     public float getGain() {
         return this.informationGain;
@@ -72,5 +95,42 @@ public class Gain {
         return attributeName;
     }
 
-    
+        public HashMap<String, Attribute> getLeftSubset(HashMap<String, Attribute> attributes, ArrayList<String> attributeNames, Attribute targetAttribute) {
+        // create copy of a list
+        HashMap<String, Attribute> leftNode = (HashMap<String, Attribute>) SerializationUtils.clone(attributes);
+        //create a sublist
+        Collections.sort(indexListB, Collections.reverseOrder());
+        final ArrayList<Integer> indexesOfRedundantValues = indexListB;
+        for (int j = 0; j < leftNode.size() - 1; j++) {
+            for (final int k : indexesOfRedundantValues) {
+                final Attribute tmp = leftNode.get(attributeNames.get(j));
+                tmp.remove(k);
+            }
+        }
+        for (final int k : indexesOfRedundantValues) {
+            final Attribute tmp = leftNode.get(targetAttribute.getName());
+            tmp.remove(k);
+        }
+        return leftNode;
+    }
+
+    public HashMap<String, Attribute> getRightSubset(HashMap<String, Attribute> attributes, ArrayList<String> attributeNames, Attribute targetAttribute) {
+        // create copy of a list
+        HashMap<String, Attribute> rightNode = (HashMap<String, Attribute>) SerializationUtils.clone(attributes);
+        //create a sublist
+        Collections.sort(indexListA, Collections.reverseOrder());
+        final ArrayList<Integer> indexesOfRedundantValues = indexListA;
+        for (int j = 0; j < rightNode.size() - 1; j++) {
+            for (final int k : indexesOfRedundantValues) {
+                final Attribute tmp = rightNode.get(attributeNames.get(j));
+                tmp.remove(k);
+            }
+        }
+        for (final int k : indexesOfRedundantValues) {
+            final Attribute tmp = rightNode.get(targetAttribute.getName());
+            tmp.remove(k);
+        }
+        return rightNode;
+    }
+
 }

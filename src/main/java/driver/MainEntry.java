@@ -8,11 +8,11 @@ import java.util.*;
  */
 public class MainEntry {
 
-    private final HashMap<String, MainEntry> tree = new HashMap<String, MainEntry>();
+    private HashMap<String, MainEntry> tree;
 
     public MainEntry(final HashMap<String, Attribute> attributes, final ArrayList<String> attributeNames, final Attribute targetAttribute) {
 
-
+        this.tree = new HashMap<String, MainEntry>();
         Gain finalGain = null;
 
         finalGain = null;
@@ -33,7 +33,7 @@ public class MainEntry {
             }
 
         }
-
+        HashMap<String, Attribute> leftNode = finalGain.getLeftSubset(attributes,attributeNames,targetAttribute);
         final ArrayList<Integer> indexesOfRedundantValues = finalGain.getRedundant();
         for (int j = 0; j < attributes.size() - 1; j++) {
             for (final int k : indexesOfRedundantValues) {
@@ -47,13 +47,10 @@ public class MainEntry {
         }
 
         System.out.println("Feature: " + finalGain.getAttributeName() + "\nGAIN: " + finalGain.getGain());
-        final float mdlprinc = getMDL(finalGain);
-        final float gain = finalGain.getGain();
-        //System.out.println(mdlprinc);
-
+        System.out.println(getMDL(finalGain));
 
         if (finalGain.getEntropy() > 0)
-            this.tree.put(finalGain.getAttributeName(), new MainEntry(attributes, attributeNames, targetAttribute));
+            tree.put(finalGain.getAttributeName(), new MainEntry(leftNode, attributeNames, leftNode.get(targetAttribute.getName())));
 
 
     }
@@ -104,110 +101,75 @@ public class MainEntry {
     }
 
 
-    private static Gain getGain(final Attribute attribute, final Attribute classLabels, final float targetEntropy) {
+    private static Gain getGain(final Attribute attribute, final Attribute target, final float targetEntropy) {
 
-        final ArrayList<? extends Serializable> attributeValues = attribute.getValues();
-        ArrayList<String> testingDiscretization;
-
-        // Create thresholds for an attribute data
-        createThresholdsForAttribute(attribute);
-        Gain finalGain = new Gain();
+        // Get threshold values of an attribute
         final ArrayList<Float> thresholds = createThresholdsForAttribute(attribute);
 
+        Gain finalGain = new Gain();
         for (int i = 0; i < thresholds.size(); i++) {
-            testingDiscretization = new ArrayList<String>();
-
-
-            for (final Serializable value : attributeValues) {
-                if (Float.parseFloat(value.toString()) < thresholds.get(i)) {
-                    testingDiscretization.add("A");
-
-                } else {
-                    testingDiscretization.add("B");
-
-                }
-
-            }
-            final Gain tmp = calculateGainForPair(classLabels.getValues(), attribute.getName(), testingDiscretization, targetEntropy, thresholds.get(i));
-
+            final Gain tmp = calculateGainForPair(target.getValues(), attribute.getName(), attribute.getValues(), targetEntropy, thresholds.get(i));
             if (tmp.getGain() > finalGain.getGain()) {
                 finalGain = tmp;
             }
-            //System.out.println(indexListA.size() + " " + indexListA);
-            //System.out.println(indexListB.size() + " " + indexListB);
-            //System.out.println("_______________________________________");
         }
         return finalGain;
     }
 
-    public static Gain calculateGainForPair(final ArrayList<? extends Serializable> target, final String attributeName, final ArrayList<String> attribute, final float targetEntropy, final float threshold) {
-        final float occurancesAB = attribute.size();
-        final float occurrencesA = Collections.frequency(attribute, "A");
-        final float occurrencesB = Collections.frequency(attribute, "B");
-        final float probA = occurrencesA / occurancesAB;
-        final float probB = occurrencesB / occurancesAB;
-
-//        System.out.println("occurancess AB = " + occurancessAB);
-//        System.out.println("occurrences A = " + occurrencesA);
-//        System.out.println("occurrences B = " + occurrencesB);
-//        System.out.println("probability A = " + probA);
-//        System.out.println("probability B = " + probB);
-
-        // Divide target into 2 groups 1. a < threshold , 2. a > threshold
-        final ArrayList leftNode = new ArrayList<String>();
-        final ArrayList rightNode = new ArrayList<String>();
-        int i = 0;
-
+    public static Gain calculateGainForPair(final ArrayList<? extends Serializable> targetValues, final String attributeName, ArrayList<? extends Serializable> attributeValues, final float targetEntropy, final float threshold) {
+        // holds index value of a sample
         final ArrayList<Integer> indexListA = new ArrayList<Integer>();
         final ArrayList<Integer> indexListB = new ArrayList<Integer>();
+        // holds a sample's decision label
+        final ArrayList leftNode = new ArrayList<String>();
+        final ArrayList rightNode = new ArrayList<String>();
+
+        final TreeSet<Serializable> uniqueValues = new TreeSet<Serializable>(targetValues);
+        if(uniqueValues.size()>1){
 
 
-        for (final String value : attribute) {
-            if (value.equals("A")) {
-                leftNode.add(target.get(i));
-                indexListA.add(i);
-            } else {
-                rightNode.add(target.get(i));
-                indexListB.add(i);
+            int i = 0;
+            for (final Serializable value : attributeValues) {
+                if (Float.parseFloat(value.toString()) <= threshold) {
+                    leftNode.add(targetValues.get(i));
+                    indexListA.add(i);
+                } else  {
+                    rightNode.add(targetValues.get(i));
+                    indexListB.add(i);
+                }
+                i++;
             }
-            i++;
+
         }
 
+        final float occurrencesA = indexListA.size();
+        final float occurrencesB = indexListB.size();
+        final float occurrencesAB = occurrencesA+occurrencesB;
+        final float probA = occurrencesA / occurrencesAB;
+        final float probB = occurrencesB / occurrencesAB;
 
+        // Calculate subset's entropy
         final float entropyA = calculateEntropy(leftNode);
-        //System.out.println("ENTROPY A = " + entropyA);
         final float entropyB = calculateEntropy(rightNode);
-        //System.out.println("ENTROPY B = " + entropyB);
 
         //Calculate gain for the given threshold
         final float gain = targetEntropy - (probA * entropyA) - (probB * entropyB);
-        //System.out.println("Threshold = " + threshold);
-        //System.out.println("INFORMATION GAIN = " + gain);
 
+        final HashMap<Serializable, Float> decisionClassesLeft = countDecisionClassLabels(leftNode);
+        final HashMap<Serializable, Float> decisionClassesRight = countDecisionClassLabels(rightNode);
 
-        final HashMap<Serializable, Float> a = countDecisionClassLabels(target, attribute, "A");
-        final HashMap<Serializable, Float> b = countDecisionClassLabels(target, attribute, "B");
-        //System.out.println("OCCURANCES MATRIX A = " + a);
-        //System.out.println("OCCURANCES MATRIX B = " + b);
-
-        return new Gain(attributeName, entropyA, entropyB, threshold, gain, a, b, indexListA, indexListB);
+        return new Gain(attributeName, entropyA, entropyB, threshold, gain, decisionClassesLeft, decisionClassesRight, indexListA, indexListB);
     }
 
     /**
      * Method counts occurrences of decision class labels for a given set of data
-     *
      * @param decisionClassLabels
-     * @param attribute
-     * @param subset
      * @return
      */
-    public static HashMap<Serializable, Float> countDecisionClassLabels(final ArrayList<? extends Serializable> decisionClassLabels, final ArrayList<String> attribute, final String subset) {
-
+    public static HashMap<Serializable, Float> countDecisionClassLabels(final ArrayList<? extends Serializable> decisionClassLabels) {
         final HashMap<Serializable, Float> countMap = new HashMap<Serializable, Float>();
         // Count occurrences of decision class labels
-        int i = 0;
         for (final Serializable decisionClassLabel : decisionClassLabels) {
-            if (attribute.get(i).equals(subset)) {
                 if (!countMap.containsKey(decisionClassLabel)) {
                     countMap.put(decisionClassLabel, (float) 1L);
                 } else {
@@ -215,8 +177,6 @@ public class MainEntry {
                     count = count + 1;
                     countMap.put(decisionClassLabel, count);
                 }
-            }
-            i++;
         }
         return countMap;
     }
@@ -225,14 +185,7 @@ public class MainEntry {
         // get unique values from the attribute's values collection
         final TreeSet<Float> uniqueValues = new TreeSet<Float>((Collection<? extends Float>) attribute.getValues());
         // convert to ArrayList
-        final ArrayList<Float> values = new ArrayList<Float>(uniqueValues);
-        final ArrayList<Float> thresholds = new ArrayList<Float>();
-        // Calculate and store thresholds
-        for (int i = 0; i < uniqueValues.size() - 1; i++) {
-            thresholds.add((values.get(i) + values.get(i + 1)) / 2);
-        }
-
-        return thresholds;
+        return new ArrayList<Float>(uniqueValues);
     }
 
 
