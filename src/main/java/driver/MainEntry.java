@@ -1,14 +1,22 @@
 package driver;
 
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Ordering;
+
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * Created by 12100888 on 07/11/2016.
  */
 public class MainEntry {
 
-    private HashMap<String, MainEntry> tree;
+    private final HashMap<String, MainEntry> tree;
+    private boolean isLeaf;
+    private Gain gain;
 
     public MainEntry(final HashMap<String, Attribute> attributes, final ArrayList<String> attributeNames, final Attribute targetAttribute) {
 
@@ -33,7 +41,7 @@ public class MainEntry {
             }
 
         }
-        HashMap<String, Attribute> leftNode = finalGain.getLeftSubset(attributes,attributeNames,targetAttribute);
+        //final HashMap<String, Attribute> leftNode = finalGain.getRightSubset(attributes, attributeNames, targetAttribute);
         final ArrayList<Integer> indexesOfRedundantValues = finalGain.getRedundant();
         for (int j = 0; j < attributes.size() - 1; j++) {
             for (final int k : indexesOfRedundantValues) {
@@ -47,53 +55,14 @@ public class MainEntry {
         }
 
         System.out.println("Feature: " + finalGain.getAttributeName() + "\nGAIN: " + finalGain.getGain());
-        System.out.println(getMDL(finalGain));
+        System.out.println(Pruning.getMDL(finalGain));
 
-        if (finalGain.getEntropy() > 0)
-            tree.put(finalGain.getAttributeName(), new MainEntry(leftNode, attributeNames, leftNode.get(targetAttribute.getName())));
-
+        if (Pruning.getMDL(finalGain)) {
+            tree.put(finalGain.getAttributeName(), new MainEntry(attributes, attributeNames, attributes.get(targetAttribute.getName())));
+        }
 
     }
 
-    /**
-     * Method calculates split criterion based on mdl principle
-     * <p>
-     * gain >= (1/N) x log2(N-1) + (1/N) x [ log2 ((3^|AuB|)-2) - ( |AuB| x Entropy(A+B) &ndash; |A| x Entropy(A) &ndash; |B| x Entropy(B) ]
-     * where:
-     * N - number of samples in the set
-     * A - subset of values < threshold
-     * B -  subset of values > threshold
-     * |AuB| - number of possible class labels in entire set
-     * |A| - in subset A
-     * |B| - in subset B
-     *
-     * @param gain
-     * @return boolean
-     */
-    public static float getMDL(final Gain gain) {
-
-        final float gainValue = gain.getGain();
-        final float entropyA = gain.getEntropyA();
-        final float entropyB = gain.getEntropyB();
-        final float entropyAB = gain.getEntropy();
-
-        final float N = gain.indexListA.size() + gain.indexListB.size();
-        final float A = gain.ossucranceA.size();
-        final float B = gain.ossucranceB.size();
-        // |AuB| - number of possible class labels in entire set
-        final TreeSet<String> classesNames = new TreeSet<String>();
-        final Set a = gain.ossucranceA.keySet();
-        final Set b = gain.ossucranceB.keySet();
-        classesNames.addAll(a);
-        classesNames.addAll(b);
-        final float AuB = classesNames.size();
-
-        final float leftSideOfFormula = ((1 / N) * (float) (Math.log(N - 1) / Math.log(2))) +
-                (1 / N) * ((float) (Math.log(Math.pow(3, AuB) - 2) / Math.log(2)) - (AuB * entropyAB) - (A * entropyA) - (B * entropyB));
-        final boolean isSplit = (gainValue >= leftSideOfFormula);
-        System.out.println("MDL: " + leftSideOfFormula + "\nsplit:" + isSplit + "\nThreshold " + gain.getThreshold() + "\n");
-        return leftSideOfFormula;
-    }
 
     public static HashMap<String, Attribute> getSubsetOfData(final HashMap<String, Attribute> attributes) {
         //System.out.println("MDL PRINCIPLE " + attributes.keySet());
@@ -104,19 +73,19 @@ public class MainEntry {
     private static Gain getGain(final Attribute attribute, final Attribute target, final float targetEntropy) {
 
         // Get threshold values of an attribute
-        final ArrayList<Float> thresholds = createThresholdsForAttribute(attribute);
+        final ArrayList<Float> thresholds = createThresholdsForAttribute(attribute, target);
 
         Gain finalGain = new Gain();
         for (int i = 0; i < thresholds.size(); i++) {
             final Gain tmp = calculateGainForPair(target.getValues(), attribute.getName(), attribute.getValues(), targetEntropy, thresholds.get(i));
-            if (tmp.getGain() > finalGain.getGain()) {
+            if (tmp.getGain() >= finalGain.getGain()) {
                 finalGain = tmp;
             }
         }
         return finalGain;
     }
 
-    public static Gain calculateGainForPair(final ArrayList<? extends Serializable> targetValues, final String attributeName, ArrayList<? extends Serializable> attributeValues, final float targetEntropy, final float threshold) {
+    public static Gain calculateGainForPair(final ArrayList<? extends Serializable> targetValues, final String attributeName, final ArrayList<? extends Serializable> attributeValues, final float targetEntropy, final float threshold) {
         // holds index value of a sample
         final ArrayList<Integer> indexListA = new ArrayList<Integer>();
         final ArrayList<Integer> indexListB = new ArrayList<Integer>();
@@ -124,27 +93,25 @@ public class MainEntry {
         final ArrayList leftNode = new ArrayList<String>();
         final ArrayList rightNode = new ArrayList<String>();
 
-        final TreeSet<Serializable> uniqueValues = new TreeSet<Serializable>(targetValues);
-        if(uniqueValues.size()>1){
-
-
-            int i = 0;
-            for (final Serializable value : attributeValues) {
-                if (Float.parseFloat(value.toString()) <= threshold) {
-                    leftNode.add(targetValues.get(i));
-                    indexListA.add(i);
-                } else  {
-                    rightNode.add(targetValues.get(i));
-                    indexListB.add(i);
-                }
-                i++;
+        //final TreeSet<Serializable> uniqueValues = new TreeSet<Serializable>(targetValues);
+        // if (uniqueValues.size() > 1) {
+        int i = 0;
+        for (final Serializable value : attributeValues) {
+            if (Float.parseFloat(value.toString()) <= threshold) {
+                leftNode.add(targetValues.get(i));
+                indexListA.add(i);
+            } else {
+                rightNode.add(targetValues.get(i));
+                indexListB.add(i);
             }
-
+            i++;
         }
+
+        //}
 
         final float occurrencesA = indexListA.size();
         final float occurrencesB = indexListB.size();
-        final float occurrencesAB = occurrencesA+occurrencesB;
+        final float occurrencesAB = occurrencesA + occurrencesB;
         final float probA = occurrencesA / occurrencesAB;
         final float probB = occurrencesB / occurrencesAB;
 
@@ -163,6 +130,7 @@ public class MainEntry {
 
     /**
      * Method counts occurrences of decision class labels for a given set of data
+     *
      * @param decisionClassLabels
      * @return
      */
@@ -170,22 +138,55 @@ public class MainEntry {
         final HashMap<Serializable, Float> countMap = new HashMap<Serializable, Float>();
         // Count occurrences of decision class labels
         for (final Serializable decisionClassLabel : decisionClassLabels) {
-                if (!countMap.containsKey(decisionClassLabel)) {
-                    countMap.put(decisionClassLabel, (float) 1L);
-                } else {
-                    Float count = countMap.get(decisionClassLabel);
-                    count = count + 1;
-                    countMap.put(decisionClassLabel, count);
-                }
+            if (!countMap.containsKey(decisionClassLabel)) {
+                countMap.put(decisionClassLabel, (float) 1L);
+            } else {
+                Float count = countMap.get(decisionClassLabel);
+                count = count + 1;
+                countMap.put(decisionClassLabel, count);
+            }
         }
         return countMap;
     }
 
-    public static ArrayList<Float> createThresholdsForAttribute(final Attribute attribute) {
-        // get unique values from the attribute's values collection
-        final TreeSet<Float> uniqueValues = new TreeSet<Float>((Collection<? extends Float>) attribute.getValues());
-        // convert to ArrayList
-        return new ArrayList<Float>(uniqueValues);
+    public static ArrayList<Float> createThresholdsForAttribute(final Attribute attribute, final Attribute target) {
+        final Multimap<String, Float> multiMap = LinkedListMultimap.create();
+        for (int i = 0; i < target.getValues().size(); i++) {
+            multiMap.put(target.getValues().get(i).toString(), Float.parseFloat(attribute.getValues().get(i).toString()));
+        }
+
+        /* our output, 'newArrayList()' is just a guava convenience function */
+        final ArrayList<String> sortedTargets = Lists.newArrayList();
+        final ArrayList<Float> sortedData = Lists.newArrayList();
+        final ArrayList<Float> thresholds = Lists.newArrayList();
+        Ordering.natural().sortedCopy(multiMap.keys());
+        /* cycle through a sorted copy of the MultiMap's keys... */
+        System.out.println(Ordering.natural().sortedCopy(multiMap.keys()));
+        for (final String name : Ordering.natural().sortedCopy(multiMap.keys())) {
+            //GET SIZE OF THE LIST
+            /* ...and add all of the associated values to the lists */
+            for (final Float value : multiMap.get(name)) {
+
+                sortedTargets.add(name);
+                sortedData.add(value);
+            }
+        }
+        //System.out.println(sortedTargets);
+        //System.out.println(sortedData);
+        for (int i = 1; i < sortedTargets.size() - 1; i++) {
+            if (!sortedTargets.get(i).equals(sortedTargets.get(i - 1))) {
+                thresholds.add(sortedData.get(i));
+//                System.out.println(sortedTargets.get(i));
+//                System.out.println(sortedData.get(i - 1));
+//                System.out.println(sortedData.get(i));
+            }
+        }
+        final int i = 0;
+//        // get unique values from the attribute's values collection
+//        final TreeSet<Float> uniqueValues = new TreeSet<Float>((Collection<? extends Float>) attribute.getValues());
+//        // convert to ArrayList
+//        return new ArrayList<Float>(uniqueValues);
+        return thresholds;
     }
 
 

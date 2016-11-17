@@ -1,6 +1,5 @@
 package dataReader;
 
-import driver.MainEntry;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -39,7 +38,7 @@ public class CSVReader {
         return new ArrayList<String>(csvFileParser.getHeaderMap().keySet());
     }
 
-    public Iterable<CSVRecord> getDataSet() {
+    public List<CSVRecord> getDataSet() {
         return this.csvRecordList;
     }
 }

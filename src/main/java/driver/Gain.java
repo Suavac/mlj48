@@ -38,7 +38,7 @@ public class Gain {
     }
 
 
-    public final HashMap<String, Attribute> getSubset(HashMap<String, Attribute> attributes,final ArrayList<String> attributeNames, Attribute target) {
+    public final HashMap<String, Attribute> getSubset(final HashMap<String, Attribute> attributes, final ArrayList<String> attributeNames, final Attribute target) {
 
         final ArrayList<Integer> indexesOfRedundantValues = getRedundant();
         for (int j = 0; j < attributes.size() - 1; j++) {
@@ -70,7 +70,6 @@ public class Gain {
     }
 
 
-
     public float getGain() {
         return this.informationGain;
     }
@@ -95,42 +94,35 @@ public class Gain {
         return attributeName;
     }
 
-        public HashMap<String, Attribute> getLeftSubset(HashMap<String, Attribute> attributes, ArrayList<String> attributeNames, Attribute targetAttribute) {
-        // create copy of a list
-        HashMap<String, Attribute> leftNode = (HashMap<String, Attribute>) SerializationUtils.clone(attributes);
-        //create a sublist
-        Collections.sort(indexListB, Collections.reverseOrder());
-        final ArrayList<Integer> indexesOfRedundantValues = indexListB;
-        for (int j = 0; j < leftNode.size() - 1; j++) {
-            for (final int k : indexesOfRedundantValues) {
-                final Attribute tmp = leftNode.get(attributeNames.get(j));
-                tmp.remove(k);
-            }
-        }
-        for (final int k : indexesOfRedundantValues) {
-            final Attribute tmp = leftNode.get(targetAttribute.getName());
-            tmp.remove(k);
-        }
-        return leftNode;
+    public HashMap<String, Attribute> getLeftSubset(final HashMap<String, Attribute> attributes, final ArrayList<String> attributeNames, final Attribute targetAttribute) {
+        return getDataSubset(attributes, attributeNames, targetAttribute, indexListA);
     }
 
-    public HashMap<String, Attribute> getRightSubset(HashMap<String, Attribute> attributes, ArrayList<String> attributeNames, Attribute targetAttribute) {
+    public HashMap<String, Attribute> getRightSubset(final HashMap<String, Attribute> attributes, final ArrayList<String> attributeNames, final Attribute targetAttribute) {
+        return getDataSubset(attributes, attributeNames, targetAttribute, indexListB);
+    }
+
+    private HashMap<String, Attribute> getDataSubset(final HashMap<String, Attribute> attributes, final ArrayList<String> attributeNames, final Attribute targetAttribute, final ArrayList<Integer> indexListA) {
         // create copy of a list
-        HashMap<String, Attribute> rightNode = (HashMap<String, Attribute>) SerializationUtils.clone(attributes);
+        final HashMap<String, Attribute> dataSubset = (HashMap<String, Attribute>) SerializationUtils.clone(attributes);
         //create a sublist
-        Collections.sort(indexListA, Collections.reverseOrder());
-        final ArrayList<Integer> indexesOfRedundantValues = indexListA;
-        for (int j = 0; j < rightNode.size() - 1; j++) {
+        try {
+            Collections.sort(indexListB, Collections.reverseOrder());
+        } catch (final Exception e) {
+        }
+
+        final ArrayList<Integer> indexesOfRedundantValues = indexListB;
+        for (int j = 0; j < dataSubset.size() - 1; j++) {
             for (final int k : indexesOfRedundantValues) {
-                final Attribute tmp = rightNode.get(attributeNames.get(j));
+                final Attribute tmp = dataSubset.get(attributeNames.get(j));
                 tmp.remove(k);
             }
         }
         for (final int k : indexesOfRedundantValues) {
-            final Attribute tmp = rightNode.get(targetAttribute.getName());
+            final Attribute tmp = dataSubset.get(targetAttribute.getName());
             tmp.remove(k);
         }
-        return rightNode;
+        return dataSubset;
     }
 
 }
