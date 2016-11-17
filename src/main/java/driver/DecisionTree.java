@@ -1,36 +1,55 @@
 package driver;
 
-import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Ordering;
 
+import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.TreeSet;
 
 /**
  * Created by 12100888 on 07/11/2016.
  */
-public class MainEntry {
+public class DecisionTree {
 
-    private final HashMap<String, MainEntry> tree;
+    private final HashMap<String, DecisionTree> treeNodes  = new HashMap<String, DecisionTree>();
     private boolean isLeaf;
     private Gain gain;
+    private String nodeName;
 
-    public MainEntry(final HashMap<String, Attribute> attributes, final ArrayList<String> attributeNames, final Attribute targetAttribute) {
+    public DecisionTree(){
+    }
 
-        this.tree = new HashMap<String, MainEntry>();
+    public DecisionTree train(PreprocessedData ppd){
+        final HashMap<String, Attribute> attributes = ppd.getAttributes();
+        System.out.println(ppd.getAttributes().size());
+        // choose target - assuming that target is a last column
+        final Attribute targetAttribute = attributes.get(ppd.getTargetName());
+        final ArrayList<String> attributeNames = ppd.getAttributeNames();
+        return new DecisionTree(attributes,attributeNames,targetAttribute);
+    }
+
+    public File test(PreprocessedData ppd){
+        return null;
+    }
+
+
+    private DecisionTree(final HashMap<String, Attribute> attributes, final ArrayList<String> attributeNames, final Attribute targetAttribute) {
+
+        // Calculate Target Entropy
+        final float targetEntropy = calculateEntropy(targetAttribute.getValues());
+        if(!(targetEntropy>0)){
+            this.isLeaf = true;
+            this.nodeName = (String) targetAttribute.getValues().get(0);
+            System.out.println("\n------------------" + targetAttribute.getValues().get(0) + "\n");
+            return;
+        }
         Gain finalGain = null;
-
-        finalGain = null;
-        for (int i = 0; i < attributeNames.size(); i++) {
+        for (String attributeName : attributeNames) {
             // choose attribute
-            final String attributeName = attributeNames.get(i);
             final Attribute attribute = attributes.get(attributeName);
-            // Calculate Target Entropy
-            final float targetEntropy = calculateEntropy(targetAttribute.getValues());
-            //System.out.println("TARGET ENTROPY = " + targetEntropy);
             //getSubsetOfData(attributes);
             final Gain gainOfAnAttribute = getGain(attribute, targetAttribute, targetEntropy);
             //final ArrayList<Integer> o = finalGain.getRedundant();
@@ -41,24 +60,27 @@ public class MainEntry {
             }
 
         }
-        //final HashMap<String, Attribute> leftNode = finalGain.getRightSubset(attributes, attributeNames, targetAttribute);
-        final ArrayList<Integer> indexesOfRedundantValues = finalGain.getRedundant();
-        for (int j = 0; j < attributes.size() - 1; j++) {
-            for (final int k : indexesOfRedundantValues) {
-                final Attribute a = attributes.get(attributeNames.get(j));
-                a.remove(k);
-            }
-        }
-        for (final int k : indexesOfRedundantValues) {
-            final Attribute a = attributes.get(targetAttribute.getName());
-            a.remove(k);
-        }
+        final HashMap<String, Attribute> leftNode = finalGain.getLeftSubset(attributes, attributeNames, targetAttribute);
+        final HashMap<String, Attribute> rightNode = finalGain.getRightSubset(attributes, attributeNames, targetAttribute);
 
-        System.out.println("Feature: " + finalGain.getAttributeName() + "\nGAIN: " + finalGain.getGain());
-        System.out.println(Pruning.getMDL(finalGain));
+        if(Pruning.getMDL(finalGain))
+        System.out.println("\nFeature: " + finalGain.getAttributeName() +
+                "\nGAIN: " + finalGain.getGain() +
+                "\n THRESHOLD: " + finalGain.getThreshold() +
+                "\nSPLIT :" +Pruning.getMDL(finalGain)+
+                "");
+
 
         if (Pruning.getMDL(finalGain)) {
-            tree.put(finalGain.getAttributeName(), new MainEntry(attributes, attributeNames, attributes.get(targetAttribute.getName())));
+            this.gain = finalGain;
+            this.nodeName = finalGain.getAttributeName();
+            treeNodes.put("left", new DecisionTree(leftNode, attributeNames, leftNode.get(targetAttribute.getName())));
+            treeNodes.put("right",new DecisionTree(rightNode, attributeNames, rightNode.get(targetAttribute.getName())));
+        } else {
+            this.gain = finalGain;
+            this.isLeaf = true;
+            this.nodeName = finalGain.getMostOccurringLabel();
+            System.out.println("\n------------------" + (String) finalGain.getMostOccurringLabel() + "\n");
         }
 
     }
@@ -69,12 +91,9 @@ public class MainEntry {
         return null;
     }
 
-
     private static Gain getGain(final Attribute attribute, final Attribute target, final float targetEntropy) {
-
         // Get threshold values of an attribute
         final ArrayList<Float> thresholds = createThresholdsForAttribute(attribute, target);
-
         Gain finalGain = new Gain();
         for (int i = 0; i < thresholds.size(); i++) {
             final Gain tmp = calculateGainForPair(target.getValues(), attribute.getName(), attribute.getValues(), targetEntropy, thresholds.get(i));
@@ -150,43 +169,43 @@ public class MainEntry {
     }
 
     public static ArrayList<Float> createThresholdsForAttribute(final Attribute attribute, final Attribute target) {
-        final Multimap<String, Float> multiMap = LinkedListMultimap.create();
-        for (int i = 0; i < target.getValues().size(); i++) {
-            multiMap.put(target.getValues().get(i).toString(), Float.parseFloat(attribute.getValues().get(i).toString()));
-        }
-
-        /* our output, 'newArrayList()' is just a guava convenience function */
-        final ArrayList<String> sortedTargets = Lists.newArrayList();
-        final ArrayList<Float> sortedData = Lists.newArrayList();
-        final ArrayList<Float> thresholds = Lists.newArrayList();
-        Ordering.natural().sortedCopy(multiMap.keys());
-        /* cycle through a sorted copy of the MultiMap's keys... */
-        System.out.println(Ordering.natural().sortedCopy(multiMap.keys()));
-        for (final String name : Ordering.natural().sortedCopy(multiMap.keys())) {
-            //GET SIZE OF THE LIST
-            /* ...and add all of the associated values to the lists */
-            for (final Float value : multiMap.get(name)) {
-
-                sortedTargets.add(name);
-                sortedData.add(value);
-            }
-        }
-        //System.out.println(sortedTargets);
-        //System.out.println(sortedData);
-        for (int i = 1; i < sortedTargets.size() - 1; i++) {
-            if (!sortedTargets.get(i).equals(sortedTargets.get(i - 1))) {
-                thresholds.add(sortedData.get(i));
-//                System.out.println(sortedTargets.get(i));
-//                System.out.println(sortedData.get(i - 1));
-//                System.out.println(sortedData.get(i));
-            }
-        }
-        final int i = 0;
-//        // get unique values from the attribute's values collection
-//        final TreeSet<Float> uniqueValues = new TreeSet<Float>((Collection<? extends Float>) attribute.getValues());
-//        // convert to ArrayList
-//        return new ArrayList<Float>(uniqueValues);
-        return thresholds;
+//        final Multimap<String, Float> multiMap = LinkedListMultimap.create();
+//        for (int i = 0; i < target.getValues().size(); i++) {
+//            multiMap.put(target.getValues().get(i).toString(), Float.parseFloat(attribute.getValues().get(i).toString()));
+//        }
+//
+//        /* our output, 'newArrayList()' is just a guava convenience function */
+//        final ArrayList<String> sortedTargets = Lists.newArrayList();
+//        final ArrayList<Float> sortedData = Lists.newArrayList();
+//        final ArrayList<Float> thresholds = Lists.newArrayList();
+//        //Ordering.natural().sortedCopy(multiMap.keySet());
+//        /* cycle through a sorted copy of the MultiMap's keys... */
+//        //System.out.println(Ordering.natural().sortedCopy(multiMap.keys()));
+//        for (final String name : Ordering.natural().sortedCopy(multiMap.keySet())) {
+//            //GET SIZE OF THE LIST
+//            /* ...and add all of the associated values to the lists */
+//            for (final Float value : multiMap.get(name)) {
+//
+//                sortedTargets.add(name);
+//                sortedData.add(value);
+//            }
+//        }
+//        //System.out.println(sortedTargets);
+//        //System.out.println(sortedData);
+//        for (int i = 1; i < sortedTargets.size() - 1; i++) {
+//            if (!sortedTargets.get(i).equals(sortedTargets.get(i - 1))) {
+//                thresholds.add(sortedData.get(i-1));
+////                System.out.println(sortedTargets.get(i));
+////                System.out.println(sortedData.get(i - 1));
+////                System.out.println(sortedData.get(i));
+//            }
+//        }
+//        final int i = 0;
+        // get unique values from the attribute's values collection
+        final TreeSet<Float> uniqueValues = new TreeSet<Float>((Collection<? extends Float>) attribute.getValues());
+        // convert to ArrayList
+        return new ArrayList<Float>(uniqueValues);
+//        return thresholds;
     }
 
 

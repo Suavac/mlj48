@@ -31,12 +31,12 @@ public class Pruning {
         final float entropyAB = gain.getEntropy();
 
         final float N = gain.indexListA.size() + gain.indexListB.size();
-        final float A = gain.ossucranceA.size();
-        final float B = gain.ossucranceB.size();
+        final float A = gain.occurrenceA.size();
+        final float B = gain.occurrenceB.size();
         // |AuB| - number of possible class labels in entire set
         final TreeSet<String> classesNames = new TreeSet<String>();
-        final Set a = gain.ossucranceA.keySet();
-        final Set b = gain.ossucranceB.keySet();
+        final Set a = gain.occurrenceA.keySet();
+        final Set b = gain.occurrenceB.keySet();
         classesNames.addAll(a);
         classesNames.addAll(b);
         final float AuB = classesNames.size();
@@ -44,7 +44,7 @@ public class Pruning {
         final float leftSideOfFormula = ((1 / N) * (float) (Math.log(N - 1) / Math.log(2))) +
                 (1 / N) * ((float) (Math.log(Math.pow(3, AuB) - 2) / Math.log(2)) - (AuB * entropyAB) - (A * entropyA) - (B * entropyB));
         final boolean isSplit = (gainValue >= leftSideOfFormula);
-        System.out.println("MDL: " + leftSideOfFormula + "\nsplit:" + isSplit + "\nThreshold " + gain.getThreshold() + "\n");
+        //System.out.println("MDL: " + leftSideOfFormula + "\nsplit:" + isSplit + "\nThreshold " + gain.getThreshold() + "\n");
         return gainValue >= leftSideOfFormula;
     }
 

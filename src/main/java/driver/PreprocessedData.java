@@ -3,8 +3,10 @@ package driver;
 import dataReader.CSVReader;
 import org.apache.commons.csv.CSVRecord;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * Created by 12100888 on 08/11/2016.
@@ -15,6 +17,7 @@ public class PreprocessedData {
     private final ArrayList<String> attributeNames;
     private final String targetName;
     final HashMap<String, Attribute> attributes;
+    final HashMap<String, Attribute2> attributes2;
 
     public PreprocessedData(final String filePath) throws Exception {
 
@@ -31,7 +34,12 @@ public class PreprocessedData {
             attributes.put(attributeName, new Attribute(attributeName));
         }
 
-        extractAttributes(data.getDataSet(), attributeNames, attributes);
+        attributes2 = new HashMap<String, Attribute2>();
+        for (final String attributeName : attributeNames) {
+            attributes2.put(attributeName, new Attribute2(attributeName));
+        }
+
+        extractAttributes(data.getDataSet(), attributeNames, attributes, attributes2);
         targetName = attributeNames.remove(attributeNames.size() - 1);
         createTargetAttribute(targetName);
     }
@@ -59,13 +67,30 @@ public class PreprocessedData {
 
     //http://www.saedsayad.com/decision_tree.htm
     //Extract values of each attribute
-    public static void extractAttributes(final Iterable<CSVRecord> dataRecords, final ArrayList<String> attributeNames, final HashMap<String, Attribute> attributes) {
+    public static void extractAttributes(final Iterable<CSVRecord> dataRecords, final ArrayList<String> attributeNames, final HashMap<String, Attribute> attributes, HashMap<String, Attribute2> attributes2) {
 
         for (final String attributeName : attributeNames) {
             for (final CSVRecord record : dataRecords) {
                 final Attribute tmp = attributes.get(attributeName);
                 tmp.addValue(record.get(attributeName));
             }
+        }
+
+        // Decide if attribute is continuous
+        for (final String attributeName : attributeNames) {
+            boolean isContinuous = true;
+            for (final CSVRecord record : dataRecords) {
+                try {
+                    String value = record.get(attributeName);
+                    if(!value.trim().equals("")){
+                        Float.parseFloat(record.get(attributeName));
+                    }
+                }catch (Exception e){
+                    isContinuous = false;
+                    break;
+                }
+            }
+            attributes2.put(attributeName, new Attribute2(attributeName, isContinuous));
         }
 
 //        for (final CSVRecord record : dataRecords) {
@@ -78,5 +103,9 @@ public class PreprocessedData {
 
     public Object getTargetAttribute() {
         return attributes.get("type");
+    }
+
+    public List<CSVRecord> getDataset(){
+        return this.data.getDataSet();
     }
 }
