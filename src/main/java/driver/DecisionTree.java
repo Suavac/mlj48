@@ -1,11 +1,12 @@
 package driver;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import org.apache.commons.csv.CSVRecord;
 
 import java.io.File;
-import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.TreeSet;
 
@@ -14,44 +15,49 @@ import java.util.TreeSet;
  */
 public class DecisionTree {
 
-    private final HashMap<String, DecisionTree> treeNodes  = new HashMap<String, DecisionTree>();
+    private final HashMap treeNodes = Maps.newHashMap();
     private boolean isLeaf;
     private Gain gain;
     private String nodeName;
 
-    public DecisionTree(){
+    public DecisionTree() {
     }
 
-    public DecisionTree train(PreprocessedData ppd){
-        final HashMap<String, Attribute> attributes = ppd.getAttributes();
+    public DecisionTree train(final PreprocessedData ppd) {
+        final HashMap attributes = ppd.getAttributes();
         System.out.println(ppd.getAttributes().size());
         // choose target - assuming that target is a last column
-        final Attribute targetAttribute = attributes.get(ppd.getTargetName());
-        final ArrayList<String> attributeNames = ppd.getAttributeNames();
-        return new DecisionTree(attributes,attributeNames,targetAttribute);
+        final Attribute targetAttribute = (Attribute) attributes.get(ppd.getTargetName());
+        final ArrayList attributeNames = ppd.getAttributeNames();
+        final Iterable dataSet = ppd.getDataRecords();
+        final ArrayList instancesIndex = ppd.getInstancesIndex();
+        return new DecisionTree(dataSet, instancesIndex, attributes, attributeNames, targetAttribute);
     }
 
-    public File test(PreprocessedData ppd){
+    public File test(final PreprocessedData ppd) {
         return null;
     }
 
 
-    private DecisionTree(final HashMap<String, Attribute> attributes, final ArrayList<String> attributeNames, final Attribute targetAttribute) {
+    private DecisionTree(final Iterable dataSet, final ArrayList instancesIndex, final HashMap attributes, final ArrayList attributeNames, final Attribute targetAttribute) {
 
         // Calculate Target Entropy
-        final float targetEntropy = calculateEntropy(targetAttribute.getValues());
-        if(!(targetEntropy>0)){
+        //final double targetEntropy = calculateEntropy(targetAttribute.getValues());
+        final double targetEntropy = calculateEntropy(dataSet, instancesIndex, targetAttribute);
+        if (!(targetEntropy > 0)) {
             this.isLeaf = true;
-            this.nodeName = (String) targetAttribute.getValues().get(0);
-            System.out.println("\n------------------" + targetAttribute.getValues().get(0) + "\n");
+            final CSVRecord instance = (CSVRecord) Iterables.get(dataSet, ((Long) instancesIndex.get(0)).intValue());
+            this.nodeName = instance.get(targetAttribute.getName());
+            System.out.println("\n------------------" + this.nodeName + "\n");
             return;
         }
         Gain finalGain = null;
-        for (String attributeName : attributeNames) {
+        for (final Object attributeName : attributeNames) {
             // choose attribute
-            final Attribute attribute = attributes.get(attributeName);
+            final Attribute attribute = (Attribute) attributes.get(attributeName);
             //getSubsetOfData(attributes);
-            final Gain gainOfAnAttribute = getGain(attribute, targetAttribute, targetEntropy);
+            final Gain gainOfAnAttribute = getGain(dataSet, instancesIndex, attribute, targetAttribute, targetEntropy);
+//            final Gain gainOfAnAttribute = getGain(attribute, targetAttribute, targetEntropy);
             //final ArrayList<Integer> o = finalGain.getRedundant();
             if (finalGain == null) {
                 finalGain = gainOfAnAttribute;
@@ -60,43 +66,38 @@ public class DecisionTree {
             }
 
         }
-        final HashMap<String, Attribute> leftNode = finalGain.getLeftSubset(attributes, attributeNames, targetAttribute);
-        final HashMap<String, Attribute> rightNode = finalGain.getRightSubset(attributes, attributeNames, targetAttribute);
+        //final HashMap leftNode = finalGain.getLeftSubset(attributes, attributeNames, targetAttribute);
+        //final HashMap rightNode = finalGain.getRightSubset(attributes, attributeNames, targetAttribute);
 
-        if(Pruning.getMDL(finalGain))
-        System.out.println("\nFeature: " + finalGain.getAttributeName() +
-                "\nGAIN: " + finalGain.getGain() +
-                "\n THRESHOLD: " + finalGain.getThreshold() +
-                "\nSPLIT :" +Pruning.getMDL(finalGain)+
-                "");
+        if (Pruning.getMDL(finalGain))
+            System.out.println("\nFeature: " + finalGain.getAttributeName() +
+                    "\nGAIN: " + finalGain.getGain() +
+                    "\n THRESHOLD: " + finalGain.getThreshold() +
+                    "\nSPLIT :" + Pruning.getMDL(finalGain) +
+                    "");
 
 
         if (Pruning.getMDL(finalGain)) {
             this.gain = finalGain;
             this.nodeName = finalGain.getAttributeName();
-            treeNodes.put("left", new DecisionTree(leftNode, attributeNames, leftNode.get(targetAttribute.getName())));
-            treeNodes.put("right",new DecisionTree(rightNode, attributeNames, rightNode.get(targetAttribute.getName())));
+            treeNodes.put(finalGain.getThreshold(), new DecisionTree(dataSet, finalGain.getIndexListA(), attributes, attributeNames, targetAttribute));
+            treeNodes.put("right", new DecisionTree(dataSet, finalGain.getIndexListB(), attributes, attributeNames, targetAttribute));
         } else {
             this.gain = finalGain;
             this.isLeaf = true;
             this.nodeName = finalGain.getMostOccurringLabel();
-            System.out.println("\n------------------" + (String) finalGain.getMostOccurringLabel() + "\n");
+            System.out.println("\n------------------" + finalGain.getMostOccurringLabel() + "\n");
         }
 
     }
 
 
-    public static HashMap<String, Attribute> getSubsetOfData(final HashMap<String, Attribute> attributes) {
-        //System.out.println("MDL PRINCIPLE " + attributes.keySet());
-        return null;
-    }
-
-    private static Gain getGain(final Attribute attribute, final Attribute target, final float targetEntropy) {
+    private static Gain getGain(final Iterable<CSVRecord> dataSet, final ArrayList instancesIndex, final Attribute attribute, final Attribute target, final double targetEntropy) {
         // Get threshold values of an attribute
-        final ArrayList<Float> thresholds = createThresholdsForAttribute(attribute, target);
+        final ArrayList thresholds = createThresholdsForAttribute(dataSet, instancesIndex, attribute);
         Gain finalGain = new Gain();
         for (int i = 0; i < thresholds.size(); i++) {
-            final Gain tmp = calculateGainForPair(target.getValues(), attribute.getName(), attribute.getValues(), targetEntropy, thresholds.get(i));
+            final Gain tmp = calculateGainForPair(dataSet, instancesIndex, attribute, target, targetEntropy, (Double) thresholds.get(i));
             if (tmp.getGain() >= finalGain.getGain()) {
                 finalGain = tmp;
             }
@@ -104,47 +105,46 @@ public class DecisionTree {
         return finalGain;
     }
 
-    public static Gain calculateGainForPair(final ArrayList<? extends Serializable> targetValues, final String attributeName, final ArrayList<? extends Serializable> attributeValues, final float targetEntropy, final float threshold) {
+    public static Gain calculateGainForPair(final Iterable<CSVRecord> dataSet, final ArrayList instancesIndex, final Attribute attribute, final Attribute target, final double targetEntropy, final double threshold) {
         // holds index value of a sample
-        final ArrayList<Integer> indexListA = new ArrayList<Integer>();
-        final ArrayList<Integer> indexListB = new ArrayList<Integer>();
+        final ArrayList indexListA = Lists.newArrayList();
+        final ArrayList indexListB = Lists.newArrayList();
         // holds a sample's decision label
-        final ArrayList leftNode = new ArrayList<String>();
-        final ArrayList rightNode = new ArrayList<String>();
+        final ArrayList leftNode = Lists.newArrayList();
+        final ArrayList rightNode = Lists.newArrayList();
 
-        //final TreeSet<Serializable> uniqueValues = new TreeSet<Serializable>(targetValues);
-        // if (uniqueValues.size() > 1) {
-        int i = 0;
-        for (final Serializable value : attributeValues) {
-            if (Float.parseFloat(value.toString()) <= threshold) {
-                leftNode.add(targetValues.get(i));
-                indexListA.add(i);
-            } else {
-                rightNode.add(targetValues.get(i));
-                indexListB.add(i);
+        for (final CSVRecord instance : dataSet) {
+            if (instancesIndex.contains(instance.getRecordNumber())) {
+                final Double value = Double.valueOf(instance.get(attribute.getName()));
+                final long instanceNumber = instance.getRecordNumber();
+                final String label = instance.get(target.getName());
+                if (value <= threshold) {
+                    leftNode.add(label);
+                    indexListA.add(instanceNumber);
+                } else {
+                    rightNode.add(label);
+                    indexListB.add(instanceNumber);
+                }
             }
-            i++;
         }
 
-        //}
-
-        final float occurrencesA = indexListA.size();
-        final float occurrencesB = indexListB.size();
-        final float occurrencesAB = occurrencesA + occurrencesB;
-        final float probA = occurrencesA / occurrencesAB;
-        final float probB = occurrencesB / occurrencesAB;
+        final double occurrencesA = indexListA.size();
+        final double occurrencesB = indexListB.size();
+        final double occurrencesAB = occurrencesA + occurrencesB;
+        final double probA = occurrencesA / occurrencesAB;
+        final double probB = occurrencesB / occurrencesAB;
 
         // Calculate subset's entropy
-        final float entropyA = calculateEntropy(leftNode);
-        final float entropyB = calculateEntropy(rightNode);
+        final double entropyA = calculateEntropy(dataSet, indexListA, target);
+        final double entropyB = calculateEntropy(dataSet, indexListB, target);
 
         //Calculate gain for the given threshold
-        final float gain = targetEntropy - (probA * entropyA) - (probB * entropyB);
+        final double gain = targetEntropy - (probA * entropyA) - (probB * entropyB);
 
-        final HashMap<Serializable, Float> decisionClassesLeft = countDecisionClassLabels(leftNode);
-        final HashMap<Serializable, Float> decisionClassesRight = countDecisionClassLabels(rightNode);
+        final HashMap decisionClassesLeft = countDecisionClassLabels(leftNode);
+        final HashMap decisionClassesRight = countDecisionClassLabels(rightNode);
 
-        return new Gain(attributeName, entropyA, entropyB, threshold, gain, decisionClassesLeft, decisionClassesRight, indexListA, indexListB);
+        return new Gain(attribute.getName(), entropyA, entropyB, threshold, gain, decisionClassesLeft, decisionClassesRight, indexListA, indexListB);
     }
 
     /**
@@ -153,14 +153,14 @@ public class DecisionTree {
      * @param decisionClassLabels
      * @return
      */
-    public static HashMap<Serializable, Float> countDecisionClassLabels(final ArrayList<? extends Serializable> decisionClassLabels) {
-        final HashMap<Serializable, Float> countMap = new HashMap<Serializable, Float>();
+    public static HashMap countDecisionClassLabels(final ArrayList decisionClassLabels) {
+        final HashMap countMap = Maps.newHashMap();
         // Count occurrences of decision class labels
-        for (final Serializable decisionClassLabel : decisionClassLabels) {
+        for (final Object decisionClassLabel : decisionClassLabels) {
             if (!countMap.containsKey(decisionClassLabel)) {
-                countMap.put(decisionClassLabel, (float) 1L);
+                countMap.put(decisionClassLabel, (double) 1L);
             } else {
-                Float count = countMap.get(decisionClassLabel);
+                Double count = (Double) countMap.get(decisionClassLabel);
                 count = count + 1;
                 countMap.put(decisionClassLabel, count);
             }
@@ -168,23 +168,23 @@ public class DecisionTree {
         return countMap;
     }
 
-    public static ArrayList<Float> createThresholdsForAttribute(final Attribute attribute, final Attribute target) {
-//        final Multimap<String, Float> multiMap = LinkedListMultimap.create();
+    public static ArrayList createThresholdsForAttribute(final Iterable<CSVRecord> dataSet, final ArrayList instancesIndex, final Attribute attribute) {
+//        final Multimap<String, Double> multiMap = LinkedListMultimap.create();
 //        for (int i = 0; i < target.getValues().size(); i++) {
-//            multiMap.put(target.getValues().get(i).toString(), Float.parseFloat(attribute.getValues().get(i).toString()));
+//            multiMap.put(target.getValues().get(i).toString(), Double.parseDouble(attribute.getValues().get(i).toString()));
 //        }
 //
 //        /* our output, 'newArrayList()' is just a guava convenience function */
 //        final ArrayList<String> sortedTargets = Lists.newArrayList();
-//        final ArrayList<Float> sortedData = Lists.newArrayList();
-//        final ArrayList<Float> thresholds = Lists.newArrayList();
+//        final ArrayList<Double> sortedData = Lists.newArrayList();
+//        final ArrayList<Double> thresholds = Lists.newArrayList();
 //        //Ordering.natural().sortedCopy(multiMap.keySet());
 //        /* cycle through a sorted copy of the MultiMap's keys... */
 //        //System.out.println(Ordering.natural().sortedCopy(multiMap.keys()));
 //        for (final String name : Ordering.natural().sortedCopy(multiMap.keySet())) {
 //            //GET SIZE OF THE LIST
 //            /* ...and add all of the associated values to the lists */
-//            for (final Float value : multiMap.get(name)) {
+//            for (final Double value : multiMap.get(name)) {
 //
 //                sortedTargets.add(name);
 //                sortedData.add(value);
@@ -202,29 +202,36 @@ public class DecisionTree {
 //        }
 //        final int i = 0;
         // get unique values from the attribute's values collection
-        final TreeSet<Float> uniqueValues = new TreeSet<Float>((Collection<? extends Float>) attribute.getValues());
-        // convert to ArrayList
-        return new ArrayList<Float>(uniqueValues);
-//        return thresholds;
-    }
-
-
-    public static Float calculateEntropy(final ArrayList<? extends Serializable> dataSet) {
-        final float numberOfSamples = dataSet.size();
-        // count occurrences of each decision class
-        final HashMap<Serializable, Long> countMap = new HashMap<Serializable, Long>();
-        for (final Serializable decisionClassLabel : dataSet) {
-            if (!countMap.containsKey(decisionClassLabel)) {
-                countMap.put(decisionClassLabel, 1L);
-            } else {
-                Long count = countMap.get(decisionClassLabel);
-                count = count + 1L;
-                countMap.put(decisionClassLabel, count);
+        final TreeSet uniqueValues = new TreeSet();
+        for (final CSVRecord instance : dataSet) {
+            if (instancesIndex.contains(instance.getRecordNumber())) {
+                final Double thresholdValue = Double.valueOf(instance.get(attribute.getName()));
+                uniqueValues.add(thresholdValue);
             }
         }
-        float ENTROPY = 0;
-        for (final Serializable decisionClassLabel : countMap.keySet()) {
-            final float probabilityOfValue = (countMap.get(decisionClassLabel) / numberOfSamples);
+
+        return new ArrayList(uniqueValues);
+    }
+
+    public static Double calculateEntropy(final Iterable<CSVRecord> dataSet, final ArrayList instancesIndex, final Attribute targetAttribute) {
+        final double numberOfSamples = instancesIndex.size();
+        // count occurrences of each decision class
+        final HashMap countMap = Maps.newHashMap();
+        for (final CSVRecord instance : dataSet) {
+            if (instancesIndex.contains(instance.getRecordNumber())) {
+                final String decisionClassLabel = instance.get(targetAttribute.getName());
+                if (!countMap.containsKey(decisionClassLabel)) {
+                    countMap.put(decisionClassLabel, 1L);
+                } else {
+                    Long count = (Long) countMap.get(decisionClassLabel);
+                    count = count + 1L;
+                    countMap.put(decisionClassLabel, count);
+                }
+            }
+        }
+        double ENTROPY = 0;
+        for (final Object decisionClassLabel : countMap.keySet()) {
+            final double probabilityOfValue = (Double.parseDouble(countMap.get(decisionClassLabel).toString()) / numberOfSamples);
             ENTROPY -= (probabilityOfValue * (Math.log(probabilityOfValue) / Math.log(2)));
         }
         return ENTROPY;
