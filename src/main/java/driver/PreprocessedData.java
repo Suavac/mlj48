@@ -17,7 +17,7 @@ public class PreprocessedData {
     private final ArrayList<String> attributeNames;
     private final String targetName;
     final HashMap<String, Attribute> attributes;
-    final HashMap<String, Attribute2> attributes2;
+
     final static ArrayList instancesIndex = Lists.newArrayList();
 
     public PreprocessedData(final String filePath) throws Exception {
@@ -34,16 +34,10 @@ public class PreprocessedData {
         for (final String attributeName : attributeNames) {
             attributes.put(attributeName, new Attribute(attributeName));
         }
-
-        attributes2 = new HashMap<String, Attribute2>();
-        for (final String attributeName : attributeNames) {
-            attributes2.put(attributeName, new Attribute2(attributeName));
-        }
-        // create index of instances
         for (final CSVRecord record : data.getDataSet()) {
             instancesIndex.add(record.getRecordNumber());
         }
-        extractAttributes(data.getDataSet(), attributeNames, attributes, attributes2);
+        extractAttributes(data.getDataSet(), attributeNames, attributes);
         targetName = attributeNames.remove(attributeNames.size() - 1);
         createTargetAttribute(targetName);
     }
@@ -71,16 +65,7 @@ public class PreprocessedData {
 
     //http://www.saedsayad.com/decision_tree.htm
     //Extract values of each attribute
-    public static void extractAttributes(final Iterable<CSVRecord> dataRecords, final ArrayList<String> attributeNames, final HashMap<String, Attribute> attributes, final HashMap<String, Attribute2> attributes2) {
-
-        for (final String attributeName : attributeNames) {
-            for (final CSVRecord record : dataRecords) {
-                final Attribute tmp = attributes.get(attributeName);
-                tmp.addValue(record.get(attributeName));
-
-            }
-        }
-
+    public static void extractAttributes(final Iterable<CSVRecord> dataRecords, final ArrayList<String> attributeNames, final HashMap<String, Attribute> attributes) {
 
         // Decide if attribute is continuous
         for (final String attributeName : attributeNames) {
@@ -96,15 +81,8 @@ public class PreprocessedData {
                     break;
                 }
             }
-            attributes2.put(attributeName, new Attribute2(attributeName, isContinuous));
+            attributes.put(attributeName, new Attribute(attributeName, isContinuous));
         }
-
-//        for (final CSVRecord record : dataRecords) {
-//            for (final String attributeName : attributeList) {
-//                final Attribute tmp = atributes.get(attributeName);
-//                tmp.addValue(record.get(attributeName));
-//            }
-//        }
     }
 
     public Object getTargetAttribute() {

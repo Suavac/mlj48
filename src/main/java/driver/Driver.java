@@ -1,8 +1,5 @@
 package driver;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-
 /**
  * Created by Suavek on 16/11/2016.
  */
@@ -14,7 +11,7 @@ public class Driver {
         ///http://clear-lines.com/blog/post/Discretizing-a-continuous-variable-using-Entropy.aspx
         final PreprocessedData ppd = new PreprocessedData("owls15.csv");
 
-        final DecisionTree classifier = new DecisionTree().train(ppd);
+        final TreeNode classifier = new TreeNode().train(ppd);
         classifier.test(ppd);
 
         final String a = "sdsd";

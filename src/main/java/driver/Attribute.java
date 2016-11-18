@@ -11,70 +11,22 @@ import java.util.ArrayList;
 public class Attribute implements Serializable {
 
     private final String name;
-    private final ArrayList<Serializable> valuesAlphaNumeric = new ArrayList<Serializable>();
-    private final ArrayList<Float> valuesNumeric = new ArrayList<Float>();
+    private final MutableBoolean isContinuous = new MutableBoolean();
 
-
-    private MutableBoolean isContinuous = null;
-
-    public Attribute(final String name) {
+    public Attribute(String name){
         this.name = name;
     }
 
-    /**
-     * Method checks if attribute consists of continuous values
-     *
-     * @return boolaen
-     */
-    public boolean isContinuous() {
-        if (this.isContinuous == null) {
-            isContinuous = new MutableBoolean();
-            for (final Serializable value : valuesAlphaNumeric) {
-                try {
-                    this.valuesNumeric.add(Float.parseFloat(String.valueOf(value)));
-                    this.isContinuous.setValue(true);
-                } catch (final NumberFormatException e) {
-                    this.isContinuous.setValue(false);
-                }
-            }
-        }
+    public Attribute(String name, boolean isContinuous){
+        this.name = name;
+        this.isContinuous.setValue(isContinuous);
+    }
+
+    public String getName(){
+        return this.name;
+    }
+
+    public boolean isContinuous(){
         return this.isContinuous.booleanValue();
-    }
-
-    public void addValue(final Serializable value) {
-        valuesAlphaNumeric.add(value);
-    }
-
-    public final ArrayList<? extends Serializable> getValues() {
-        if (isContinuous()) {
-            return this.valuesNumeric;
-        }
-        return valuesAlphaNumeric;
-    }
-
-    public ArrayList<Float> getValuesContinous() {
-        return valuesNumeric;
-    }
-
-
-    public void convertCont() {
-        for (final Serializable value : valuesAlphaNumeric) {
-            valuesNumeric.add(Float.parseFloat((String) value));
-        }
-
-    }
-
-    public void remove(final int i) {
-        try {
-            valuesAlphaNumeric.remove(i);
-            valuesNumeric.remove(i);
-        } catch (final Exception e) {
-
-        }
-
-    }
-
-    public String getName() {
-        return name;
     }
 }
