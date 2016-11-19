@@ -1,9 +1,14 @@
 package driver;
 
 import com.google.common.collect.Maps;
+import org.apache.commons.csv.CSVRecord;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created by Suavek on 11/11/2016.
@@ -17,21 +22,10 @@ public class Gain {
     private double informationGain;
     HashMap<String, Double> occurrenceA = Maps.newHashMap();
     HashMap<String, Double> occurrenceB = Maps.newHashMap();
-    List indexListA;
-    List indexListB;
+    List<CSVRecord> indexListA;
+    List<CSVRecord> indexListB;
 
-    public List getLeftSubset() {
-        return indexListA;
-    }
-
-    public List getRightSubset() {
-        return indexListB;
-    }
-    public HashMap getA() {
-        return occurrenceA;
-    }
-    public HashMap getB() {
-        return occurrenceB;
+    public Gain() {
     }
 
     public Gain(final String attributeName, final double entropyA, final double entropyB, final double threshold, final double gain, final HashMap a, final HashMap b, final List indexListA, final List indexListB) {
@@ -44,10 +38,6 @@ public class Gain {
         this.occurrenceB = b;
         this.indexListA = indexListA;
         this.indexListB = indexListB;
-    }
-
-    public Gain() {
-
     }
 
     public double getGain() {
@@ -74,22 +64,29 @@ public class Gain {
         return attributeName;
     }
 
-    public String getMostOccurringLabel() {
-        String label = "";
-        double occurrence = 0;
-
-        for (final String l : occurrenceA.keySet()) {
-            if (occurrenceA.get(l) > occurrence) {
-                occurrence = occurrenceA.get(l);
-                label = l;
-            }
-        }
-        for (final String l : occurrenceB.keySet()) {
-            if (occurrenceB.get(l) > occurrence) {
-                label =  l;
-            }
-        }
-        return label;
+    public List getLeftSubset() {
+        return indexListA;
     }
 
+    public List getRightSubset() {
+        return indexListB;
+    }
+
+    public HashMap getA() {
+        return occurrenceA;
+    }
+
+    public HashMap getB() {
+        return occurrenceB;
+    }
+
+    public String getMostOccurringLabel() {
+        final Map<String, Double> mergedMaps = Stream.concat(occurrenceA.entrySet().stream(), occurrenceB.entrySet().stream())
+                .collect(Collectors.toMap(
+                        entry -> entry.getKey(), // key
+                        entry -> entry.getValue(), // value
+                        (occurrenceA, occurrenceB) -> occurrenceA + occurrenceB) // merger
+                );
+        return Collections.max(mergedMaps.entrySet(), Map.Entry.comparingByValue()).getKey(); // key of the biggest value
+    }
 }

@@ -12,7 +12,7 @@ public class Driver {
         final PreprocessedData ppd = new PreprocessedData("owls15.csv");
 
         final TreeNode classifier = new TreeNode().train(ppd);
-        classifier.test(ppd);
+//        classifier.test(ppd);
 
         final String a = "sdsd";
         final int i = 0;
