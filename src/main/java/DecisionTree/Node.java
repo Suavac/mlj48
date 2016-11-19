@@ -1,5 +1,6 @@
 package DecisionTree;
 
+import com.google.common.collect.Maps;
 import driver.Attribute;
 
 import java.util.HashMap;
@@ -9,12 +10,27 @@ import java.util.HashMap;
  */
 public class Node {
 
-    final HashMap<String, Attribute> attributes;
     private boolean isLeaf;
     private String nodeName;
-    private HashMap<String, Node> nodes;
+    private HashMap children = Maps.newLinkedHashMap();
 
-    public Node(final HashMap<String, Attribute> attributes) {
-        this.attributes = attributes;
+    public Node() {
+    }
+
+    public Node(String nodeName, boolean isLeaf){
+        this.nodeName = nodeName;
+        this.isLeaf = isLeaf;
+    }
+
+    public boolean isLeaf(){
+        return this.isLeaf;
+    }
+
+    public String getNodeName(){
+        return this.nodeName;
+    }
+
+    public void addChild(Node child){
+        this.children.put(child.getNodeName(),child);
     }
 }

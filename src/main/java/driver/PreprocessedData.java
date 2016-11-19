@@ -21,13 +21,11 @@ public class PreprocessedData {
     final static ArrayList instancesIndex = Lists.newArrayList();
 
     public PreprocessedData(final String filePath) throws Exception {
-
         if (filePath.toLowerCase().endsWith(".csv")) {
             this.data = new CSVReader();
         } else {
             throw new Exception("Data Format not supported");
         }
-
         attributeNames = data.getAttributeNames();
 
         attributes = new HashMap<String, Attribute>();
@@ -39,34 +37,21 @@ public class PreprocessedData {
         }
         extractAttributes(data.getDataSet(), attributeNames, attributes);
         targetName = attributeNames.remove(attributeNames.size() - 1);
-        createTargetAttribute(targetName);
-    }
-
-    private void createTargetAttribute(final String targetName) {
-
     }
 
     public HashMap<String, Attribute> getAttributes() {
         return attributes;
     }
-
     public ArrayList<String> getAttributeNames() {
         return this.attributeNames;
     }
-
     public String getTargetName() {
         return this.targetName;
-    }
-
-    public Object getDecisionClass() {
-        //return decisionClass;
-        return null;
     }
 
     //http://www.saedsayad.com/decision_tree.htm
     //Extract values of each attribute
     public static void extractAttributes(final Iterable<CSVRecord> dataRecords, final ArrayList<String> attributeNames, final HashMap<String, Attribute> attributes) {
-
         // Decide if attribute is continuous
         for (final String attributeName : attributeNames) {
             boolean isContinuous = true;
@@ -99,5 +84,9 @@ public class PreprocessedData {
 
     public ArrayList getInstancesIndex() {
         return instancesIndex;
+    }
+
+    public PreprocessedData getTrainingData() {
+        return this;
     }
 }

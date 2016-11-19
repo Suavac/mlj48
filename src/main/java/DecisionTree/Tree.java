@@ -1,61 +1,43 @@
-package driver;
+package DecisionTree;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import driver.Attribute;
+import driver.Gain;
+import driver.Pruning;
 import org.apache.commons.csv.CSVRecord;
 
-import java.io.File;
 import java.util.*;
 
 /**
  * Created by 12100888 on 07/11/2016.
  */
-public class TreeNode {
+public class Tree {
 
-    protected final HashMap treeNodes = Maps.newHashMap();
-    private boolean isLeaf;
-    private Gain gain;
-    private String nodeName;
-    private static List a;
+    //protected final HashMap treeNodes = Maps.newLinkedHashMap();
+    //private boolean isLeaf;
+    //private Gain gain;
+    //private String nodeName;
+    Node root;
 
-    public TreeNode() {
+    private Tree() {}
+
+    public Tree(final List<CSVRecord> dataSet, final HashMap attributes, final ArrayList attributeNames, final Attribute targetAttribute) {
+        Node rootNode = null;
+        this.root = constructDecisionTree(rootNode, dataSet, attributes, attributeNames, targetAttribute);
     }
 
-    public TreeNode train(final PreprocessedData ppd) {
-        final HashMap attributes = ppd.getAttributes();
-        System.out.println(ppd.getAttributes().size());
-        // choose target - assuming that target is a last column
-        final Attribute targetAttribute = (Attribute) attributes.get(ppd.getTargetName());
-        final ArrayList attributeNames = ppd.getAttributeNames();
-        final List<CSVRecord> dataSet = (List<CSVRecord>) ppd.getDataRecords();
-        a = dataSet;
-        return new TreeNode(dataSet, attributes, attributeNames, targetAttribute);
-    }
-
-    private TreeNode getResult(final TreeNode root) {
-        /// https://www.tutorialspoint.com/data_structures_algorithms/binary_search_tree.htm
-        root.treeNodes.keySet();
-        return null;
-    }
-
-    public File test(final PreprocessedData ppd) {
-        final CSVRecord instance = (CSVRecord) Iterables.get(ppd.getDataRecords(), 0);
-
-        return null;
-    }
-
-    private TreeNode(final List<CSVRecord> dataSet, final HashMap attributes, final ArrayList attributeNames, final Attribute targetAttribute) {
-        final int k = a.size();
+    private static Node constructDecisionTree(Node rootNode, final List<CSVRecord> dataSet, final HashMap attributes, final ArrayList attributeNames, final Attribute targetAttribute){
         // Calculate Target Entropy
         final double targetEntropy = calculateEntropy(dataSet, targetAttribute);
         if (!(targetEntropy > 0)) {
-            this.isLeaf = true;
+            //this.isLeaf = true;
             final CSVRecord instance = Iterables.get(dataSet, 0);
-            this.nodeName = instance.get(targetAttribute.getName());
-            System.out.println("\n------------------" + this.nodeName + "\n");
+            //this.nodeName = instance.get(targetAttribute.getName());
+            System.out.println("\n------------------" + instance.get(targetAttribute.getName()) + "\n");
             //dataSet.removeAll(dataSet);  // remove processed data
-            return;
+            return new Node(instance.get(targetAttribute.getName()), true);
         }
         Gain finalGain = null;
         for (final Object attributeName : attributeNames) {
@@ -75,23 +57,28 @@ public class TreeNode {
                     "\n THRESHOLD: " + finalGain.getThreshold() +
                     "\nSPLIT :" + Pruning.getMDL(finalGain) +
                     "");
-
+        dataSet.removeAll(dataSet);  // remove processed data
         if (Pruning.getMDL(finalGain)) {
-            this.gain = finalGain;
-            this.nodeName = finalGain.getAttributeName();
-            treeNodes.put(finalGain.getThreshold(), new TreeNode(finalGain.getLeftSubset(), attributes, attributeNames, targetAttribute));
-            dataSet.removeAll(finalGain.getLeftSubset());  // remove processed data
-            treeNodes.put("right", new TreeNode(dataSet, attributes, attributeNames, targetAttribute));
+                rootNode = new Node(finalGain.getAttributeName(), false);
+            if(((Attribute)attributes.get(finalGain.getAttributeName())).isContinuous()){
+                rootNode.addChild(constructDecisionTree(rootNode, finalGain.getLeftSubset(), attributes, attributeNames, targetAttribute));
+                rootNode.addChild(constructDecisionTree(rootNode, finalGain.getRightSubset(), attributes, attributeNames, targetAttribute));
+            } else {
+                // TODO -Deal with discrete Attribute
+            }
         } else {
-            this.gain = finalGain;
-            this.isLeaf = true;
-            this.nodeName = finalGain.getMostOccurringLabel();
+            //this.gain = finalGain;
+            //this.isLeaf = true;
+            //this.nodeName = finalGain.getMostOccurringLabel();
             System.out.println("\n------------------" + finalGain.getMostOccurringLabel() + "\n");
             System.out.println("------------------" + finalGain.getA());
             System.out.println("------------------" + finalGain.getB());
+            return new Node(finalGain.getMostOccurringLabel(),true);
         }
-
+        return rootNode;
     }
+
+
 
     private static Gain getGain(final List<CSVRecord> dataSet, final Attribute attribute, final Attribute target, final double targetEntropy) {
         if (attribute.isContinuous()) {
