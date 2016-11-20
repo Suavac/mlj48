@@ -1,5 +1,6 @@
 package DecisionTree;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import driver.Gain;
 import org.apache.commons.csv.CSVRecord;
@@ -13,11 +14,11 @@ import java.util.HashMap;
  */
 public class Tree {
 
-    private final boolean isLeaf;
-    private final String nodeName;
+    private boolean isLeaf;
+    private String nodeName;
     private final String value;
-    private final HashMap<String, Tree> children = Maps.newLinkedHashMap();
-
+    private final ArrayList<Tree> children = Lists.newArrayList();
+    //private final HashMap<String, Tree> children = Maps.newLinkedHashMap();
 
     public Tree(final String nodeName, final boolean isLeaf) {
         this.nodeName = nodeName;
@@ -40,7 +41,17 @@ public class Tree {
     }
 
     public void addChild(final Tree child) {
-        this.children.put(child.getNodeName(), child);
+        //final ArrayList children = new ArrayList<>(this.children.keySet());
+        // if the same labels on both sides then make node a label
+        //if(children.size()>0){
+         //   if(child.getNodeName().equals(children.get(0))){
+         //       this.nodeName = child.nodeName;
+         //       this.isLeaf = true;
+          //      return;
+          //  }
+        //}
+        this.children.add(child);
+
     }
 
     public String getValue() {
@@ -48,17 +59,18 @@ public class Tree {
     }
 
     public String search(final Tree node, final CSVRecord instance) {
-
         if (node.isLeaf())
             return node.getNodeName();
-
         final String value = instance.get(node.getNodeName());
-
-        final ArrayList children = new ArrayList<>(node.children.keySet());
-
         return new BigDecimal(value).compareTo(new BigDecimal(node.getValue())) <= 0 ?
-                search(node.children.get(children.get(0)), instance) :
-                search(node.children.get(children.get(1)), instance);
+                search(node.children.get(0), instance) :
+                search(node.children.get(1), instance);
+
+//        final ArrayList children = new ArrayList<>(node.children.keySet());
+//
+//        return new BigDecimal(value).compareTo(new BigDecimal(node.getValue())) <= 0 ?
+//                search(node.children.get(children.get(0)), instance) :
+//                search(node.children.get(children.get(1%children.size())), instance);
     }
 }
 

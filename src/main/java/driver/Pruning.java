@@ -28,7 +28,9 @@ public class Pruning {
         final double entropyA = gain.getEntropyA();
         final double entropyB = gain.getEntropyB();
         final double entropyAB = gain.getEntropy();
-        final double N = gain.indexListA.size() + gain.indexListB.size();
+        final double sizeA = gain.indexListA !=null ? gain.indexListA.size() : 0;
+        final double sizeB = gain.indexListB !=null ? gain.indexListB.size() : 0;
+        final double N = sizeA + sizeB;
         final double A = gain.occurrenceA.size();
         final double B = gain.occurrenceB.size();
         // |AuB| - number of possible labels in entire set

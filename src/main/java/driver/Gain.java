@@ -74,13 +74,21 @@ public class Gain {
     }
 
     public String getMostOccurringLabel() {
+        System.out.println("--------------------Occ A Key------------------" +occurrenceA.keySet()+"\n");
+        System.out.println("--------------------Occ B Key------------------" +occurrenceB.keySet()+"\n");
         final Map<String, Double> mergedMaps = Stream.concat(occurrenceA.entrySet().stream(), occurrenceB.entrySet().stream())
                 .collect(Collectors.toMap(
                         entry -> entry.getKey(), // key
                         entry -> entry.getValue(), // value
                         (occurrenceA, occurrenceB) -> occurrenceA + occurrenceB) // merger
                 );
-        return Collections.max(mergedMaps.entrySet(), Map.Entry.comparingByValue()).getKey(); // key of the biggest value
+        //try{
+        System.out.println("-----------------------------------------------\n" +mergedMaps.keySet() +"\n\n");
+            return Collections.max(mergedMaps.entrySet(), Map.Entry.comparingByValue()).getKey(); // key of the biggest value
+//        } catch (Exception e){
+//            return "";
+//        }
+
     }
 
     public double getValue() {

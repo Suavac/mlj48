@@ -24,7 +24,7 @@ public class C45 implements Classifier {
         // choose target - assuming that target is a last column
         final Attribute targetAttribute = (Attribute) attributes.get(ppd.getTargetName());
         final ArrayList attributeNames = ppd.getAttributeNames();
-        final List<CSVRecord> dataSet = (List<CSVRecord>) ppd.getDataRecords();
+        final List<CSVRecord> dataSet = ppd.getTrainingDataSet();
         this.decisionTreeRoot = new TreeConstructor(dataSet, attributes, attributeNames, targetAttribute).getDecisionTree();
     }
 
@@ -35,17 +35,20 @@ public class C45 implements Classifier {
         final Attribute targetAttribute = (Attribute) attributes.get(ppd.getTargetName());
         final ArrayList attributeNames = ppd.getAttributeNames();
 
-        final List<CSVRecord> dataSet = (List<CSVRecord>) ppd.getDataRecords();
+        final List<CSVRecord> dataSet =  ppd.getTestingDataSet();
         int k = 0;
         int l = 0;
         int p = 0;
         for (final CSVRecord instance : dataSet) {
+            //if(++k==161){
+            //    int u = 0;
+            //}
             final String lan = decisionTreeRoot.search(decisionTreeRoot, instance);
 
-            k++;
+            //k++;
             if (lan.equals("LongEaredOwl")) k++;
-            if (lan.equals("LongEaredOwl")) l++;
-            if (lan.equals("LongEaredOwl")) p++;
+            if (lan.equals("BarnOwl")) l++;
+            if (lan.equals("SnowyOwl")) p++;
 
         }
         System.out.println(k);

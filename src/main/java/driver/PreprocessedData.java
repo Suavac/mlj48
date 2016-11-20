@@ -7,6 +7,7 @@ import org.apache.commons.csv.CSVRecord;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Created by 12100888 on 08/11/2016.
@@ -17,6 +18,10 @@ public class PreprocessedData {
     private final ArrayList<String> attributeNames;
     private final String targetName;
     final HashMap<String, Attribute> attributes;
+
+    List<CSVRecord> trainingSet = Lists.newArrayList();
+    List<CSVRecord> testingSet = Lists.newArrayList();
+
 
     final static ArrayList instancesIndex = Lists.newArrayList();
 
@@ -70,6 +75,21 @@ public class PreprocessedData {
         }
     }
 
+    public void splitTrainingTestPercentage(double splitPercent) {
+        int numberOfTrainingSamples = (int) Math.floor(getDataset().size() * splitPercent);
+        int numberOfTestingSamples = getDataset().size() - numberOfTrainingSamples;
+        for(int i = 0 ; i < numberOfTestingSamples ; i++){
+            CSVRecord tmpSample = getDataset().get(ThreadLocalRandom.current().nextInt(0, getDataset().size()));
+            this.testingSet.add(tmpSample);
+            getDataset().remove(tmpSample);
+        }
+        this.trainingSet = data.getDataSet();
+        int p = 0;
+
+    }
+
+
+
     public Object getTargetAttribute() {
         return attributes.get("type");
     }
@@ -86,7 +106,11 @@ public class PreprocessedData {
         return instancesIndex;
     }
 
-    public PreprocessedData getTrainingData() {
-        return this;
+    public List getTrainingDataSet() {
+        return data.getDataSet();
     }
+    public List<CSVRecord> getTestingDataSet() {
+        return this.testingSet;
+    }
+
 }

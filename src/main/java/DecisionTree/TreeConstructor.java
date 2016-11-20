@@ -47,7 +47,7 @@ public class TreeConstructor {
 
         if (Pruning.getSplitCriterion(finalGain))
             System.out.println("\nFeature: " + finalGain.getAttributeName() + "\nGAIN: " + finalGain.getGain() + "\nTHRESHOLD: " + finalGain.getThreshold() + "\nSPLIT :" + Pruning.getSplitCriterion(finalGain));
-        //dataSet.removeAll(dataSet);  // remove processed data
+        dataSet.removeAll(dataSet);  // remove processed data
         final Tree rootNode;
         if (Pruning.getSplitCriterion(finalGain)) {
             rootNode = new Tree(finalGain, false);
