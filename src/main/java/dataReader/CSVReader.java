@@ -23,7 +23,7 @@ public class CSVReader {
     public CSVReader() throws IOException {
         // Get and read File
         //final ClassLoader classLoader = new MainEntry().getClass().getClassLoader();
-        final File file = new File(getClass().getClassLoader().getResource("owls15.csv").getFile());
+        final File file = new File(getClass().getClassLoader().getResource("illness.csv").getFile());
         final Reader fileReader = new FileReader(file);
         // Parse file
         // Iterable<CSVRecord> instances  = csvFileParser;

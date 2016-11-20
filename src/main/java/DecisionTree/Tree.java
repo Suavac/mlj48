@@ -13,13 +13,10 @@ import java.util.HashMap;
  */
 public class Tree {
 
-    private boolean isLeaf;
-    private String nodeName;
-    private String value;
+    private final boolean isLeaf;
+    private final String nodeName;
+    private final String value;
     private final HashMap<String, Tree> children = Maps.newLinkedHashMap();
-
-    public Tree() {
-    }
 
 
     public Tree(final String nodeName, final boolean isLeaf) {

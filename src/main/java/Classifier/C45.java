@@ -42,7 +42,7 @@ public class C45 implements Classifier {
         for (final CSVRecord instance : dataSet) {
             final String lan = decisionTreeRoot.search(decisionTreeRoot, instance);
 
-
+            k++;
             if (lan.equals("LongEaredOwl")) k++;
             if (lan.equals("LongEaredOwl")) l++;
             if (lan.equals("LongEaredOwl")) p++;
