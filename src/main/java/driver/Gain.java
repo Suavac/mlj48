@@ -18,17 +18,18 @@ public class Gain {
     private String attributeName;
     private double entropyA;
     private double entropyB;
-    private double threshold;
+    private String threshold;
     private double informationGain;
     HashMap<String, Double> occurrenceA = Maps.newHashMap();
     HashMap<String, Double> occurrenceB = Maps.newHashMap();
     List<CSVRecord> indexListA;
     List<CSVRecord> indexListB;
+    private double value;
 
     public Gain() {
     }
 
-    public Gain(final String attributeName, final double entropyA, final double entropyB, final double threshold, final double gain, final HashMap a, final HashMap b, final List indexListA, final List indexListB) {
+    public Gain(final String attributeName, final double entropyA, final double entropyB, final String threshold, final double gain, final HashMap a, final HashMap b, final List indexListA, final List indexListB) {
         this.attributeName = attributeName;
         this.entropyA = entropyA;
         this.entropyB = entropyB;
@@ -56,7 +57,7 @@ public class Gain {
         return entropyB;
     }
 
-    public double getThreshold() {
+    public String getThreshold() {
         return threshold;
     }
 
@@ -72,14 +73,6 @@ public class Gain {
         return indexListB;
     }
 
-    public HashMap getA() {
-        return occurrenceA;
-    }
-
-    public HashMap getB() {
-        return occurrenceB;
-    }
-
     public String getMostOccurringLabel() {
         final Map<String, Double> mergedMaps = Stream.concat(occurrenceA.entrySet().stream(), occurrenceB.entrySet().stream())
                 .collect(Collectors.toMap(
@@ -88,5 +81,9 @@ public class Gain {
                         (occurrenceA, occurrenceB) -> occurrenceA + occurrenceB) // merger
                 );
         return Collections.max(mergedMaps.entrySet(), Map.Entry.comparingByValue()).getKey(); // key of the biggest value
+    }
+
+    public double getValue() {
+        return value;
     }
 }

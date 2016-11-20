@@ -1,6 +1,5 @@
 package driver;
 
-import java.util.Set;
 import java.util.TreeSet;
 
 /**
@@ -23,28 +22,23 @@ public class Pruning {
      * @param gain
      * @return boolean
      */
-    public static boolean getMDL(final Gain gain) {
+    public static boolean getSplitCriterion(final Gain gain) {
 
         final double gainValue = gain.getGain();
         final double entropyA = gain.getEntropyA();
         final double entropyB = gain.getEntropyB();
         final double entropyAB = gain.getEntropy();
-
         final double N = gain.indexListA.size() + gain.indexListB.size();
         final double A = gain.occurrenceA.size();
         final double B = gain.occurrenceB.size();
-        // |AuB| - number of possible class labels in entire set
-        final TreeSet<String> classesNames = new TreeSet<String>();
-        final Set a = gain.occurrenceA.keySet();
-        final Set b = gain.occurrenceB.keySet();
-        classesNames.addAll(a);
-        classesNames.addAll(b);
-        final double AuB = classesNames.size();
+        // |AuB| - number of possible labels in entire set
+        final TreeSet labels = new TreeSet();
+        labels.addAll(gain.occurrenceA.keySet());
+        labels.addAll(gain.occurrenceB.keySet());
+        final double AuB = labels.size();
 
         final double leftSideOfFormula = ((1 / N) * (Math.log(N - 1) / Math.log(2))) +
                 (1 / N) * ((Math.log(Math.pow(3, AuB) - 2) / Math.log(2)) - (AuB * entropyAB) - (A * entropyA) - (B * entropyB));
-        final boolean isSplit = (gainValue >= leftSideOfFormula);
-        //System.out.println("MDL: " + leftSideOfFormula + "\nsplit:" + isSplit + "\nThreshold " + gain.getThreshold() + "\n");
         return gainValue >= leftSideOfFormula;
     }
 
