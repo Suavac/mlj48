@@ -8,25 +8,28 @@ import java.util.ArrayList;
 /**
  * Created by 12100888 on 07/11/2016.
  */
-public class Attribute implements Serializable {
+public class Attribute {
 
     private final String name;
-    private final MutableBoolean isContinuous = new MutableBoolean();
-
-    public Attribute(String name){
-        this.name = name;
-    }
+    private final boolean isContinuous;
+    private boolean isTarget;
 
     public Attribute(String name, boolean isContinuous){
         this.name = name;
-        this.isContinuous.setValue(isContinuous);
+        this.isContinuous = isContinuous;
     }
 
+    public void setAsTarget(){
+        this.isTarget = true;
+    }
     public String getName(){
         return this.name;
     }
 
     public boolean isContinuous(){
-        return this.isContinuous.booleanValue();
+        return this.isContinuous;
+    }
+    public boolean isTarget(){
+        return this.isTarget;
     }
 }

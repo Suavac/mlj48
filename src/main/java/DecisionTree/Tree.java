@@ -2,6 +2,7 @@ package DecisionTree;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import driver.Attribute;
 import driver.Gain;
 import org.apache.commons.csv.CSVRecord;
 
@@ -14,63 +15,68 @@ import java.util.HashMap;
  */
 public class Tree {
 
-    private boolean isLeaf;
+    private Attribute attribute;
     private String nodeName;
     private final String value;
-    private final ArrayList<Tree> children = Lists.newArrayList();
-    //private final HashMap<String, Tree> children = Maps.newLinkedHashMap();
+    private final HashMap<String, Tree> children = Maps.newLinkedHashMap();
 
-    public Tree(final String nodeName, final boolean isLeaf) {
-        this.nodeName = nodeName;
+    /** Constructs a leaf node
+     * @param label
+     * @param targetAttribute
+     */
+    public Tree(final String label, Attribute targetAttribute) {
+        this.nodeName = label;
         this.value = nodeName;
-        this.isLeaf = isLeaf;
+        this.attribute = targetAttribute;
     }
 
-    public Tree(final Gain gain, final boolean isLeaf) {
+    /** Constructs a decision node
+     * @param gain
+     */
+    public Tree(final Gain gain) {
         this.nodeName = gain.getAttributeName();
-        this.isLeaf = isLeaf;
         this.value = String.valueOf(gain.getThreshold());
+        this.attribute = gain.getAttribute();
     }
 
-    public boolean isLeaf() {
-        return this.isLeaf;
-    }
 
-    public String getNodeName() {
-        return this.nodeName;
-    }
-
+    /** Appends child nodes
+     * @param child
+     */
     public void addChild(final Tree child) {
-        //final ArrayList children = new ArrayList<>(this.children.keySet());
-        // if the same labels on both sides then make node a label
-        //if(children.size()>0){
-         //   if(child.getNodeName().equals(children.get(0))){
-         //       this.nodeName = child.nodeName;
-         //       this.isLeaf = true;
-          //      return;
-          //  }
-        //}
-        this.children.add(child);
-
+        final ArrayList children = new ArrayList<>(this.children.keySet());
+         //if the same labels on both sides of the decision node then make node a label
+        if(child.attribute.isTarget() && children.size() > 0){
+            if(child.nodeName.equals(children.get(0))){
+                this.nodeName = child.nodeName;
+                this.attribute = child.attribute;
+                return;
+            }
+        }
+        this.children.put(child.nodeName, child);
     }
 
-    public String getValue() {
-        return value;
-    }
-
+    /** Search for a label node
+     * @param node
+     * @param instance
+     * @return
+     */
     public String search(final Tree node, final CSVRecord instance) {
-        if (node.isLeaf())
-            return node.getNodeName();
-        final String value = instance.get(node.getNodeName());
-        return new BigDecimal(value).compareTo(new BigDecimal(node.getValue())) <= 0 ?
-                search(node.children.get(0), instance) :
-                search(node.children.get(1), instance);
+        if (node.attribute.isTarget()){
+            return node.nodeName;
+        }
 
-//        final ArrayList children = new ArrayList<>(node.children.keySet());
-//
-//        return new BigDecimal(value).compareTo(new BigDecimal(node.getValue())) <= 0 ?
-//                search(node.children.get(children.get(0)), instance) :
-//                search(node.children.get(children.get(1%children.size())), instance);
+        final ArrayList children = new ArrayList<>(node.children.keySet());
+        final String value = instance.get(node.nodeName);
+        if(node.attribute.isContinuous()){
+            // check if value smaller or greater than threshold and continue search recursively
+            int direction = new BigDecimal(value).compareTo(new BigDecimal(node.value)) <= 0 ?
+                    0: // left
+                    1; // right
+            return search(node.children.get(children.get(direction)), instance);
+        }
+        // TODO - support for discrete attributes
+        return search(node.children.get(value), instance);
     }
 }
 

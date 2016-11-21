@@ -12,16 +12,12 @@ public class Driver {
     public static void main(final String... args) throws Exception {
 
         ///http://clear-lines.com/blog/post/Discretizing-a-continuous-variable-using-Entropy.aspx
-        for(int i = 0; i< 10; i++){
+        for(int i = 0; i< 1; i++){
             final PreprocessedData ppd = new PreprocessedData("owls15.csv");
-            ppd.splitTrainingTestPercentage(0.7);
+            //ppd.splitTrainingTestPercentage(0.7);
             final Classifier classifier = new C45();
             classifier.train(ppd);
             classifier.test(ppd);
         }
-
-
-
-        final int i = 0;
     }
 }

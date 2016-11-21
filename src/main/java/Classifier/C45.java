@@ -23,42 +23,16 @@ public class C45 implements Classifier {
         System.out.println(ppd.getAttributes().size());
         // choose target - assuming that target is a last column
         final Attribute targetAttribute = (Attribute) attributes.get(ppd.getTargetName());
-        final ArrayList attributeNames = ppd.getAttributeNames();
         final List<CSVRecord> dataSet = ppd.getTrainingDataSet();
-        this.decisionTreeRoot = new TreeConstructor(dataSet, attributes, attributeNames, targetAttribute).getDecisionTree();
+        this.decisionTreeRoot = new TreeConstructor(dataSet, attributes, targetAttribute).getDecisionTree();
     }
 
     @Override
     public void test(final PreprocessedData ppd) {
-        final HashMap attributes = ppd.getAttributes();
-        // choose target - assuming that target is a last column
-        final Attribute targetAttribute = (Attribute) attributes.get(ppd.getTargetName());
-        final ArrayList attributeNames = ppd.getAttributeNames();
-
         final List<CSVRecord> dataSet =  ppd.getTestingDataSet();
-        int k = 0;
-        int l = 0;
-        int p = 0;
         for (final CSVRecord instance : dataSet) {
-            //if(++k==161){
-            //    int u = 0;
-            //}
-            final String lan = decisionTreeRoot.search(decisionTreeRoot, instance);
-
-            //k++;
-            if (lan.equals("LongEaredOwl")) k++;
-            if (lan.equals("BarnOwl")) l++;
-            if (lan.equals("SnowyOwl")) p++;
-
+            final String predicted = decisionTreeRoot.search(decisionTreeRoot, instance);
         }
-        System.out.println(k);
-        System.out.println(l);
-        System.out.println(p);
-        //final CSVRecord instance = Iterables.get(dataSet, 45);
-
-//        if (Double.parseDouble(instance.get(decisionTreeRoot.getNodeName())) <= Double.parseDouble(decisionTreeRoot.getValue().toString())) {
-//            System.out.println(instance.get(decisionTreeRoot.getNodeName()));
-//        }
     }
 
     @Override

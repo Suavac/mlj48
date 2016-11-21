@@ -18,58 +18,57 @@ public class TreeConstructor {
 
     Tree root;
 
-    public TreeConstructor(final List<CSVRecord> dataSet, final HashMap attributes, final ArrayList attributeNames, final Attribute targetAttribute) {
-        this.root = constructDecisionTree(dataSet, attributes, attributeNames, targetAttribute);
+    public TreeConstructor(final List<CSVRecord> dataSet, final HashMap attributes, final Attribute targetAttribute) {
+        this.root = constructDecisionTree(dataSet, attributes, targetAttribute);
     }
-
-    private static Tree constructDecisionTree(final List<CSVRecord> dataSet, final HashMap attributes, final ArrayList attributeNames, final Attribute targetAttribute) {
+    //http://blog.takipi.com/benchmark-how-java-8-lambdas-and-streams-can-make-your-code-5-times-slower/ lambda performance
+    private static Tree constructDecisionTree(final List<CSVRecord> dataSet, final HashMap<String, Attribute> attributes, final Attribute target) {
         // Calculate Target Entropy
-        final double targetEntropy = calculateEntropy(dataSet, targetAttribute);
+        final double targetEntropy = calculateEntropy(dataSet, target);
         if (!(targetEntropy > 0)) {
-            //this.isLeaf = true;
+            //this.isLeaf = true;b
             final CSVRecord instance = Iterables.get(dataSet, 0);
             //this.nodeName = instance.get(targetAttribute.getName());
-            System.out.println("\n------------------" + instance.get(targetAttribute.getName()) + "\n");
+            System.out.println("\n------------------" + instance.get(target.getName()) + "\n");
             //dataSet.removeAll(dataSet);  // remove processed data
-            return new Tree(instance.get(targetAttribute.getName()), true);
-        }
-        Gain finalGain = null;
-        for (final Object attributeName : attributeNames) {
-            // choose attribute
-            final Attribute attribute = (Attribute) attributes.get(attributeName);
-            final Gain gainOfAnAttribute = getGain(dataSet, attribute, targetAttribute, targetEntropy);
-            if (finalGain == null) {
-                finalGain = gainOfAnAttribute;
-            } else if (gainOfAnAttribute.getGain() >= finalGain.getGain()) {
-                finalGain = gainOfAnAttribute;
-            }
+            return new Tree(instance.get(target.getName()),target);
         }
 
-        if (Pruning.getSplitCriterion(finalGain))
-            System.out.println("\nFeature: " + finalGain.getAttributeName() + "\nGAIN: " + finalGain.getGain() + "\nTHRESHOLD: " + finalGain.getThreshold() + "\nSPLIT :" + Pruning.getSplitCriterion(finalGain));
+        final Gain[] maxGain = {null};
+        attributes.forEach((attributeName, attribute )-> {
+            if(attribute.isTarget())
+                return;
+            final Gain gainOfAnAttribute = getGain(dataSet, attribute, target, targetEntropy);
+            if (maxGain[0] == null) {
+                maxGain[0] = gainOfAnAttribute;
+            } else if (gainOfAnAttribute.getGain() >= maxGain[0].getGain()) {
+                maxGain[0] = gainOfAnAttribute;
+            }
+        });
+
+        if (Pruning.getSplitCriterion(maxGain[0]))
+            System.out.println("\nFeature: " + maxGain[0].getAttributeName() + "\nGAIN: " + maxGain[0].getGain() + "\nTHRESHOLD: " + maxGain[0].getThreshold() + "\nSPLIT :" + Pruning.getSplitCriterion(maxGain[0]));
         dataSet.removeAll(dataSet);  // remove processed data
         final Tree rootNode;
-        if (Pruning.getSplitCriterion(finalGain)) {
-            rootNode = new Tree(finalGain, false);
-            if (((Attribute) attributes.get(finalGain.getAttributeName())).isContinuous()) {
+        if (Pruning.getSplitCriterion(maxGain[0])) {
+            rootNode = new Tree(maxGain[0]);
+            if ((attributes.get(maxGain[0].getAttributeName())).isContinuous()) {
                 rootNode.addChild(
                         constructDecisionTree(
-                                finalGain.getLeftSubset(),
+                                maxGain[0].getLeftSubset(),
                                 attributes,
-                                attributeNames,
-                                targetAttribute));
+                                target));
                 rootNode.addChild(
                         constructDecisionTree(
-                                finalGain.getRightSubset(),
+                                maxGain[0].getRightSubset(),
                                 attributes,
-                                attributeNames,
-                                targetAttribute));
+                                target));
             } else {
                 // TODO -Deal with discrete Attribute
             }
         } else {
-            System.out.println("\n------------------" + finalGain.getMostOccurringLabel() + "\n");
-            return new Tree(finalGain.getMostOccurringLabel(), true);
+            System.out.println("\n------------------" + maxGain[0].getMostOccurringLabel() + "\n");
+            return new Tree(maxGain[0].getMostOccurringLabel(), target);
         }
         return rootNode;
     }
@@ -79,18 +78,16 @@ public class TreeConstructor {
         if (attribute.isContinuous()) {
             // Get threshold values of an attribute
             final ArrayList<String> thresholds = createThresholdsForAttribute(dataSet, attribute, target);
-            Gain finalGain = new Gain();
-            final int i = 0;
-            for (final String threshold : thresholds) {
-                final int j = 0;
+            final Gain[] finalGain = {new Gain()};
+            thresholds.forEach( threshold -> {
                 final Gain tmp = getContinuousAttributeGain(dataSet, attribute, target, targetEntropy, threshold);
-                if (tmp.getGain() >= finalGain.getGain()) {
-                    finalGain = tmp;
+                if (tmp.getGain() >= finalGain[0].getGain()) {
+                    finalGain[0] = tmp;
                 }
-            }
-            return finalGain;
+            });
+            return finalGain[0];
         } else {
-            //TODO - support nominal data
+            //TODO - support discrete data
             return null;
         }
     }
@@ -100,14 +97,14 @@ public class TreeConstructor {
         final List instancesBelowThreshold = Lists.newArrayList();
         final List instancesAboveThreshold = Lists.newArrayList();
 
-        for (final CSVRecord instance : dataSet) {
+        dataSet.forEach( instance -> {
             final String value = instance.get(attribute.getName());
-            if (new BigDecimal(value).compareTo(new BigDecimal(threshold)) <= 0) {
-                instancesBelowThreshold.add(instance);
-            } else {
-                instancesAboveThreshold.add(instance);
-            }
-        }
+                if (new BigDecimal(value).compareTo(new BigDecimal(threshold)) <= 0) {
+                    instancesBelowThreshold.add(instance);
+                } else {
+                    instancesAboveThreshold.add(instance);
+                }
+        });
 
         final double numInstancesBelowThreshold = instancesBelowThreshold.size();
         final double numInstancesAboveThreshold = instancesAboveThreshold.size();
@@ -125,7 +122,7 @@ public class TreeConstructor {
         final HashMap decisionClassesLeft = countDecisionClassLabels(instancesBelowThreshold, target);
         final HashMap decisionClassesRight = countDecisionClassLabels(instancesAboveThreshold, target);
 
-        return new Gain(attribute.getName(), entropyA, entropyB, threshold, gain, decisionClassesLeft, decisionClassesRight, instancesBelowThreshold, instancesAboveThreshold);
+        return new Gain(attribute, entropyA, entropyB, threshold, gain, decisionClassesLeft, decisionClassesRight, instancesBelowThreshold, instancesAboveThreshold);
     }
 
     public static ArrayList createThresholdsForAttribute(final List<CSVRecord> dataSet, final Attribute attribute, final Attribute target) {
@@ -133,14 +130,17 @@ public class TreeConstructor {
         Collections.sort(dataSet, (r1, r2) -> r1.get(attribute.getName()).compareTo(r2.get(attribute.getName())));
         // extract thresholds
         final TreeSet thresholds = new TreeSet<>();
-        for (int i = 1; i < dataSet.size() - 1; i++) {
-            final String currentLabel = dataSet.get(i).get(target.getName());
-            final String previousLabel = dataSet.get(i - 1).get(target.getName());
+        final CSVRecord[] previousInstance = {dataSet.get(0)};
+        dataSet.forEach( instance -> {
+            final String previousLabel = previousInstance[0].get(target.getName());
+            final String currentLabel = instance.get(target.getName());
             if (!currentLabel.equals(previousLabel)) {
-                final Object threshold = dataSet.get(i - 1).get(attribute.getName()).toString();
+                final Object threshold = previousInstance[0].get(attribute.getName()).toString();
                 thresholds.add(threshold);
             }
-        }
+            previousInstance[0] = instance;
+
+        });
         return new ArrayList<>(thresholds);
     }
 
@@ -155,12 +155,13 @@ public class TreeConstructor {
         final double numberOfSamples = dataSet.size();
         // count occurrences of each decision class
         final HashMap countMap = countDecisionClassLabels(dataSet, target);
-        double ENTROPY = 0;
-        for (final Object label : countMap.keySet()) {
+        final double[] entropy = {0};
+        countMap.keySet().forEach( label -> {
             final double probabilityOfValue = (Double.parseDouble(countMap.get(label).toString()) / numberOfSamples);
-            ENTROPY -= (probabilityOfValue * (Math.log(probabilityOfValue) / Math.log(2)));
-        }
-        return ENTROPY;
+            entropy[0] -= (probabilityOfValue * (Math.log(probabilityOfValue) / Math.log(2)));
+
+        });
+        return entropy[0];
     }
 
     /**
@@ -172,7 +173,7 @@ public class TreeConstructor {
      */
     public static HashMap countDecisionClassLabels(final List<CSVRecord> dataSet, final Attribute target) {
         final HashMap countMap = Maps.newHashMap();
-        for (final CSVRecord instance : dataSet) {
+        dataSet.forEach( instance -> {
             final String label = instance.get(target.getName()).toString();
             if (!countMap.containsKey(label)) {
                 countMap.put(label, (double) 1L);
@@ -181,7 +182,7 @@ public class TreeConstructor {
                 count = count + 1;
                 countMap.put(label, count);
             }
-        }
+        });
         return countMap;
     }
 

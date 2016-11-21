@@ -15,7 +15,7 @@ import java.util.stream.Stream;
  */
 public class Gain {
 
-    private String attributeName;
+    private Attribute attribute;
     private double entropyA;
     private double entropyB;
     private String threshold;
@@ -24,13 +24,9 @@ public class Gain {
     HashMap<String, Double> occurrenceB = Maps.newHashMap();
     List<CSVRecord> indexListA;
     List<CSVRecord> indexListB;
-    private double value;
 
-    public Gain() {
-    }
-
-    public Gain(final String attributeName, final double entropyA, final double entropyB, final String threshold, final double gain, final HashMap a, final HashMap b, final List indexListA, final List indexListB) {
-        this.attributeName = attributeName;
+    public Gain(final Attribute attribute, final double entropyA, final double entropyB, final String threshold, final double gain, final HashMap a, final HashMap b, final List indexListA, final List indexListB) {
+        this.attribute = attribute;
         this.entropyA = entropyA;
         this.entropyB = entropyB;
         this.threshold = threshold;
@@ -39,6 +35,20 @@ public class Gain {
         this.occurrenceB = b;
         this.indexListA = indexListA;
         this.indexListB = indexListB;
+    }
+
+    public Gain() {
+
+    }
+
+    public String getMostOccurringLabel() {
+        final Map<String, Double> mergedMaps = Stream.concat(occurrenceA.entrySet().stream(), occurrenceB.entrySet().stream())
+                .collect(Collectors.toMap(
+                        entry -> entry.getKey(), // key
+                        entry -> entry.getValue(), // value
+                        (occurrenceA, occurrenceB) -> occurrenceA + occurrenceB) // merger
+                );
+        return Collections.max(mergedMaps.entrySet(), Map.Entry.comparingByValue()).getKey(); // key of the biggest value
     }
 
     public double getGain() {
@@ -62,7 +72,11 @@ public class Gain {
     }
 
     public String getAttributeName() {
-        return attributeName;
+        return attribute.getName();
+    }
+
+    public Attribute getAttribute() {
+        return attribute;
     }
 
     public List getLeftSubset() {
@@ -73,25 +87,4 @@ public class Gain {
         return indexListB;
     }
 
-    public String getMostOccurringLabel() {
-        System.out.println("--------------------Occ A Key------------------" +occurrenceA.keySet()+"\n");
-        System.out.println("--------------------Occ B Key------------------" +occurrenceB.keySet()+"\n");
-        final Map<String, Double> mergedMaps = Stream.concat(occurrenceA.entrySet().stream(), occurrenceB.entrySet().stream())
-                .collect(Collectors.toMap(
-                        entry -> entry.getKey(), // key
-                        entry -> entry.getValue(), // value
-                        (occurrenceA, occurrenceB) -> occurrenceA + occurrenceB) // merger
-                );
-        //try{
-        System.out.println("-----------------------------------------------\n" +mergedMaps.keySet() +"\n\n");
-            return Collections.max(mergedMaps.entrySet(), Map.Entry.comparingByValue()).getKey(); // key of the biggest value
-//        } catch (Exception e){
-//            return "";
-//        }
-
-    }
-
-    public double getValue() {
-        return value;
-    }
 }
