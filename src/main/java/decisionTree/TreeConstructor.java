@@ -1,4 +1,4 @@
-package DecisionTree;
+package decisionTree;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;

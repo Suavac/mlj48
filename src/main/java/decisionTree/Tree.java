@@ -1,11 +1,11 @@
-package DecisionTree;
+package decisionTree;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import driver.Attribute;
 import driver.Gain;
 import org.apache.commons.csv.CSVRecord;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,7 +13,7 @@ import java.util.HashMap;
 /**
  * Created by Suavek on 15/11/2016.
  */
-public class Tree {
+public class Tree implements Serializable {
 
     private Attribute attribute;
     private String nodeName;

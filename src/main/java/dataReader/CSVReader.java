@@ -21,6 +21,7 @@ public class CSVReader {
 
     public CSVReader(String filePath) throws IOException {
         // Get and read File
+        //final File file = new File(filePath);
         final File file = new File(getClass().getClassLoader().getResource(filePath).getFile());
         final Reader fileReader = new FileReader(file);
         // Parse file

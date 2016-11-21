@@ -1,12 +1,11 @@
-package Classifier;
+package classifier;
 
-import DecisionTree.Tree;
-import DecisionTree.TreeConstructor;
+import decisionTree.Tree;
+import decisionTree.TreeConstructor;
 import driver.Attribute;
 import driver.PreprocessedData;
 import org.apache.commons.csv.CSVRecord;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -15,23 +14,22 @@ import java.util.List;
  */
 public class C45 implements Classifier {
 
-    Tree decisionTreeRoot;
+    Tree decisionTree;
 
     @Override
     public void train(final PreprocessedData ppd) {
         final HashMap attributes = ppd.getAttributes();
-        System.out.println(ppd.getAttributes().size());
         // choose target - assuming that target is a last column
         final Attribute targetAttribute = (Attribute) attributes.get(ppd.getTargetName());
         final List<CSVRecord> dataSet = ppd.getTrainingDataSet();
-        this.decisionTreeRoot = new TreeConstructor(dataSet, attributes, targetAttribute).getDecisionTree();
+        this.decisionTree = new TreeConstructor(dataSet, attributes, targetAttribute).getDecisionTree();
     }
 
     @Override
     public void test(final PreprocessedData ppd) {
         final List<CSVRecord> dataSet =  ppd.getTestingDataSet();
         for (final CSVRecord instance : dataSet) {
-            final String predicted = decisionTreeRoot.search(decisionTreeRoot, instance);
+            final String predicted = decisionTree.search(decisionTree, instance);
         }
     }
 
