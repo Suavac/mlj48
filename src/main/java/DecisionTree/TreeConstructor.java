@@ -47,7 +47,7 @@ public class TreeConstructor {
         });
 
         if (Pruning.getSplitCriterion(maxGain[0]))
-            System.out.println("\nFeature: " + maxGain[0].getAttributeName() + "\nGAIN: " + maxGain[0].getGain() + "\nTHRESHOLD: " + maxGain[0].getThreshold() + "\nSPLIT :" + Pruning.getSplitCriterion(maxGain[0]));
+            System.out.println("\nFeature: " + maxGain[0].getAttributeName() + "\nGAIN: " + maxGain[0].getGain() + "\nTHRESHOLD: " + maxGain[0].getValue() + "\nSPLIT :" + Pruning.getSplitCriterion(maxGain[0]));
         dataSet.removeAll(dataSet);  // remove processed data
         final Tree rootNode;
         if (Pruning.getSplitCriterion(maxGain[0])) {

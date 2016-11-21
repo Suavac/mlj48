@@ -35,7 +35,7 @@ public class Tree {
      */
     public Tree(final Gain gain) {
         this.nodeName = gain.getAttributeName();
-        this.value = String.valueOf(gain.getThreshold());
+        this.value = gain.getValue();
         this.attribute = gain.getAttribute();
     }
 

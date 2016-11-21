@@ -18,7 +18,7 @@ public class Gain {
     private Attribute attribute;
     private double entropyA;
     private double entropyB;
-    private String threshold;
+    private String value;
     private double informationGain;
     HashMap<String, Double> occurrenceA = Maps.newHashMap();
     HashMap<String, Double> occurrenceB = Maps.newHashMap();
@@ -29,7 +29,7 @@ public class Gain {
         this.attribute = attribute;
         this.entropyA = entropyA;
         this.entropyB = entropyB;
-        this.threshold = threshold;
+        this.value = threshold;
         this.informationGain = gain;
         this.occurrenceA = a;
         this.occurrenceB = b;
@@ -67,8 +67,8 @@ public class Gain {
         return entropyB;
     }
 
-    public String getThreshold() {
-        return threshold;
+    public String getValue() {
+        return value;
     }
 
     public String getAttributeName() {
