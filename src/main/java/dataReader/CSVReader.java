@@ -21,8 +21,8 @@ public class CSVReader {
 
     public CSVReader(String filePath) throws IOException {
         // Get and read File
-        //final File file = new File(filePath);
-        final File file = new File(getClass().getClassLoader().getResource(filePath).getFile());
+        final File file = new File("/Users/jamesfallon/Documents/College Work/16_17/Machine Learning [CT475]/Assignment 3/mlj48/src/main/resources/owls15.csv");
+        //final File file = new File(getClass().getClassLoader().getResource(filePath).getFile());
         final Reader fileReader = new FileReader(file);
         // Parse file
         final CSVFormat csvFileFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader();
