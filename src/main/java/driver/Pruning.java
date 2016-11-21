@@ -27,7 +27,7 @@ public class Pruning {
         final double gainValue = gain.getGain();
         final double entropyA = gain.getEntropyA();
         final double entropyB = gain.getEntropyB();
-        final double entropyAB = gain.getEntropy();
+        final double entropyAB = gain.getEntropyB()+gain.getEntropyA();
         final double sizeA = gain.indexListA !=null ? gain.indexListA.size() : 0;
         final double sizeB = gain.indexListB !=null ? gain.indexListB.size() : 0;
         final double N = sizeA + sizeB;

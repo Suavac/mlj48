@@ -1,5 +1,6 @@
 package driver;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.csv.CSVRecord;
 
@@ -18,12 +19,15 @@ public class Gain {
     private Attribute attribute;
     private double entropyA;
     private double entropyB;
+    private double entropyAB;
     private String value;
     private double informationGain;
     HashMap<String, Double> occurrenceA = Maps.newHashMap();
     HashMap<String, Double> occurrenceB = Maps.newHashMap();
     List<CSVRecord> indexListA;
     List<CSVRecord> indexListB;
+
+    List<List<CSVRecord>> subsets = Lists.newArrayList();
 
     public Gain(final Attribute attribute, final double entropyA, final double entropyB, final String threshold, final double gain, final HashMap a, final HashMap b, final List indexListA, final List indexListB) {
         this.attribute = attribute;
@@ -35,9 +39,15 @@ public class Gain {
         this.occurrenceB = b;
         this.indexListA = indexListA;
         this.indexListB = indexListB;
+        this.subsets.add(indexListA);
+        this.subsets.add(indexListB);
     }
 
-    public Gain() {
+    public Gain(){
+
+    }
+
+    public Gain(Attribute attribute, double[] gain, Map<String, List> subsets, Map<String, Map> occurrencesOfLabelsInSubsets, Map subsetsEntropy) {
 
     }
 
@@ -53,10 +63,6 @@ public class Gain {
 
     public double getGain() {
         return this.informationGain;
-    }
-
-    public double getEntropy() {
-        return this.entropyB;
     }
 
     public double getEntropyA() {
@@ -85,6 +91,10 @@ public class Gain {
 
     public List getRightSubset() {
         return indexListB;
+    }
+
+    public List getSubsets() {
+        return subsets;
     }
 
 }
