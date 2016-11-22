@@ -29,10 +29,10 @@ public class TreeConstructor {
         if (!(targetEntropy > 0)) { // if entropy = 0 create leaf
             final CSVRecord instance = Iterables.get(dataSet, 0);
             System.out.println("\n------------------" + instance.get(target.getName()) + "\n");
-            return new Tree(instance.get(target.getName()),target);
+            return new Tree(instance.get(target.getName()), target);
         }
 
-        // holds information about the attribute that gives the maximum gain
+        // holds information on the attribute that gives the maximum gain
         final Gain maximumGain = getMaximumGain(dataSet, attributes, target, targetEntropy);
         //dataSet.removeAll(dataSet); // remove processed data
 
@@ -62,11 +62,7 @@ public class TreeConstructor {
                         )
                 );
             } else {
-                final CSVRecord instance = Iterables.get(dataSet, 0);
-                System.out.println("\n------------------" + instance.get(target.getName()) + "\n");
-                return new Tree(instance.get(target.getName()), target);
-                //System.out.println("\n------------------" + maximumGain.getMostOccurringLabel() + "\n");
-                // return new Tree(maximumGain.getMostOccurringLabel(), target);
+                return new Tree(maximumGain.getMostOccurringLabel(), target);
 
             }
         }

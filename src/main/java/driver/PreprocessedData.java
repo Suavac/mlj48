@@ -44,7 +44,6 @@ public class PreprocessedData {
     //http://www.saedsayad.com/decision_tree.htm
     public static Attribute createAttribute(final Iterable<CSVRecord> dataRecords, final String attributeName) {
             // Check if attribute is continuous
-
             boolean isContinuous = true;
             for (final CSVRecord record : dataRecords) {
                 try {
