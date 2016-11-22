@@ -62,14 +62,22 @@ public class Gain {
         this.subsetsEntropy = subsetsEntropy;
     }
 
+    /** Method returns most occurring label
+     *  Used in pre-pruning when decision is made on not spiting further
+     *  The Gain object holds information on labels occurrences in two subsets
+     *  and this method extract most occurring value in both both
+     * @return
+     */
     public String getMostOccurringLabel() {
+        // concatenate two maps by summing values of duplicate keys
         final Map<String, Double> mergedMaps = Stream.concat(occurrenceA.entrySet().stream(), occurrenceB.entrySet().stream())
                 .collect(Collectors.toMap(
                         entry -> entry.getKey(), // key
                         entry -> entry.getValue(), // value
-                        (occurrenceA, occurrenceB) -> occurrenceA + occurrenceB) // merger
+                        (occurrenceA, occurrenceB) -> occurrenceA + occurrenceB) // merge
                 );
-        return Collections.max(mergedMaps.entrySet(), Map.Entry.comparingByValue()).getKey(); // key of the biggest value
+        // return key (label) of the biggest value in the map
+        return Collections.max(mergedMaps.entrySet(), Map.Entry.comparingByValue()).getKey();
     }
 
     public double getGain() {
