@@ -7,6 +7,7 @@ import driver.Attribute;
 import driver.Gain;
 import driver.Pruning;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.lang.SerializationUtils;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -25,16 +26,54 @@ public class TreeConstructor {
     private static Tree constructDecisionTree(final List<CSVRecord> dataSet, final HashMap<String, Attribute> attributes, final Attribute target) {
         // Calculate Target Entropy
         final double targetEntropy = calculateEntropy(dataSet, target);
-        if (!(targetEntropy > 0)) {
-            //this.isLeaf = true;b
+        if (!(targetEntropy > 0)) { // if entropy = 0 create leaf
             final CSVRecord instance = Iterables.get(dataSet, 0);
-            //this.nodeName = instance.get(targetAttribute.getName());
             System.out.println("\n------------------" + instance.get(target.getName()) + "\n");
-            //dataSet.removeAll(dataSet);  // remove processed data
             return new Tree(instance.get(target.getName()),target);
         }
 
-        // holds information attribute with max gain
+        // holds information about the attribute that gives the maximum gain
+        final Gain maximumGain = getMaximumGain(dataSet, attributes, target, targetEntropy);
+        //dataSet.removeAll(dataSet); // remove processed data
+
+        if (Pruning.getSplitCriterion(maximumGain))
+            System.out.println("\nFeature: " + maximumGain.getAttributeName() + "\nGAIN: " + maximumGain.getGain() + "\nTHRESHOLD: " + maximumGain.getValue() + "\nSPLIT :" + Pruning.getSplitCriterion(maximumGain));
+
+        final Tree node = new Tree(maximumGain);
+
+        if(!maximumGain.getAttribute().isContinuous()){
+            HashMap<String, Attribute> reducedAttributesList = (HashMap<String, Attribute>) SerializationUtils.clone(attributes);
+            reducedAttributesList.remove(maximumGain.getAttribute().getName());
+            maximumGain.getSubsetsDiscrete().forEach( (value,subset) ->
+                    node.addChild(
+                            value.toString(),
+                            constructDecisionTree((List<CSVRecord>) subset, reducedAttributesList, target) )
+            );
+        } else {
+            // grow only if growth improves impurity measure
+            // check is data set should be split further (pre-pruning by use of mdl principle)
+            if (Pruning.getSplitCriterion(maximumGain)) {
+                maximumGain.getSubsets().forEach(subset ->
+                        node.addChild(
+                                constructDecisionTree(
+                                        (List<CSVRecord>) subset,
+                                        attributes,
+                                        target)
+                        )
+                );
+            } else {
+                final CSVRecord instance = Iterables.get(dataSet, 0);
+                System.out.println("\n------------------" + instance.get(target.getName()) + "\n");
+                return new Tree(instance.get(target.getName()), target);
+                //System.out.println("\n------------------" + maximumGain.getMostOccurringLabel() + "\n");
+                // return new Tree(maximumGain.getMostOccurringLabel(), target);
+
+            }
+        }
+        return node;
+    }
+
+    private static Gain getMaximumGain(List<CSVRecord> dataSet, HashMap<String, Attribute> attributes, Attribute target, double targetEntropy) {
         final Gain[] maxGain = {null};
         attributes.forEach((attributeName, attribute )-> {
             if(attribute.isTarget())
@@ -46,44 +85,7 @@ public class TreeConstructor {
                 maxGain[0] = gainOfAnAttribute;
             }
         });
-
-        if (Pruning.getSplitCriterion(maxGain[0]))
-            System.out.println("\nFeature: " + maxGain[0].getAttributeName() + "\nGAIN: " + maxGain[0].getGain() + "\nTHRESHOLD: " + maxGain[0].getValue() + "\nSPLIT :" + Pruning.getSplitCriterion(maxGain[0]));
-        dataSet.removeAll(dataSet);  // remove processed data
-        final Tree rootNode;
-        if (Pruning.getSplitCriterion(maxGain[0])) {
-            rootNode = new Tree(maxGain[0]);
-            maxGain[0].getSubsets().forEach( subset ->
-                rootNode.addChild(
-                        constructDecisionTree(
-                                (List<CSVRecord>) subset,
-                                attributes,
-                                target))
-
-            );
-            // if attribute is of discrete type then remove it
-            if(!maxGain[0].getAttribute().isContinuous()){
-                attributes.remove(maxGain[0].getAttribute().isContinuous());
-            }
-//            if ((attributes.get(maxGain[0].getAttributeName())).isContinuous()) {
-//                rootNode.addChild(
-//                        constructDecisionTree(
-//                                maxGain[0].getLeftSubset(),
-//                                attributes,
-//                                target));
-//                rootNode.addChild(
-//                        constructDecisionTree(
-//                                maxGain[0].getRightSubset(),
-//                                attributes,
-//                                target));
-//            } else {
-//                // TODO -Deal with discrete Attribute
-//            }
-        } else {
-            System.out.println("\n------------------" + maxGain[0].getMostOccurringLabel() + "\n");
-            return new Tree(maxGain[0].getMostOccurringLabel(), target);
-        }
-        return rootNode;
+        return maxGain[0];
     }
 
 
@@ -100,16 +102,14 @@ public class TreeConstructor {
             });
             return finalGain[0];
         } else {
-            final Gain tmp = getDiscreteAttributeGain(dataSet, attribute, target, targetEntropy, thresholds);
-            //TODO - support discrete data
-            return null;
+            return getDiscreteAttributeGain(dataSet, attribute, target, targetEntropy, thresholds);
         }
     }
 
 
     public static Gain getDiscreteAttributeGain(final List<CSVRecord> dataSet, final Attribute attribute, final Attribute target, final double targetEntropy, final ArrayList<String> thresholds) {
-        
-        Map<String, List> subsets = Maps.newLinkedHashMap();
+
+        Map<String,List<CSVRecord>> subsets = Maps.newLinkedHashMap();
         Map<String, Map> occurrencesOfLabelsInSubsets = Maps.newLinkedHashMap();
         thresholds.forEach( value ->{
             final List<CSVRecord> subset = Lists.newArrayList();
@@ -118,27 +118,20 @@ public class TreeConstructor {
                     subset.add(instance);
                 }
             });
-            subsets.put(value.toString(), subset);
+            subsets.put(value,subset);
             occurrencesOfLabelsInSubsets.put(value.toString(), countDecisionClassLabels(subset,target));
         });
 
 
         Map subsetsEntropy = Maps.newLinkedHashMap();
         final double[] gain = {targetEntropy};
-        subsets.forEach( (value, subset ) -> {
+        subsets.forEach( (value, subset) -> {
             double probabilityOfSubset = (double)subset.size()/(double)dataSet.size();
             double entropyOfSubset = calculateEntropy(subset, target);
-
             gain[0] -= (probabilityOfSubset * entropyOfSubset);
-
-            subsetsEntropy.put(value, entropyOfSubset);
+           // subsetsEntropy.put(value, entropyOfSubset);
         });
-
-        //boolean splitCriterion = Pruning.getSplitCriterion(subsets)
-        //return gain;
-
         return new Gain(attribute, gain, subsets, occurrencesOfLabelsInSubsets, subsetsEntropy);
-        //return null;
     }
 
     public static Gain getContinuousAttributeGain(final List<CSVRecord> dataSet, final Attribute attribute, final Attribute target, final double targetEntropy, final String threshold) {
@@ -171,7 +164,7 @@ public class TreeConstructor {
         final HashMap decisionClassesLeft = countDecisionClassLabels(instancesBelowThreshold, target);
         final HashMap decisionClassesRight = countDecisionClassLabels(instancesAboveThreshold, target);
 
-        return new Gain(attribute, entropyA, entropyB, threshold, gain, decisionClassesLeft, decisionClassesRight, instancesBelowThreshold, instancesAboveThreshold);
+        return new Gain(attribute, entropyA, entropyB, threshold, gain, decisionClassesLeft, decisionClassesRight, instancesBelowThreshold, instancesAboveThreshold,targetEntropy);
     }
 
     public static ArrayList createThresholdsForAttribute(final List<CSVRecord> dataSet, final Attribute attribute, final Attribute target) {

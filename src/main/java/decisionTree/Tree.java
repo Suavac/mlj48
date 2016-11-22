@@ -17,7 +17,7 @@ public class Tree implements Serializable {
 
     private Attribute attribute;
     private String nodeName;
-    private final String value;
+    private String value;
     private final HashMap<String, Tree> children = Maps.newLinkedHashMap();
 
     /** Constructs a leaf node
@@ -54,6 +54,13 @@ public class Tree implements Serializable {
             }
         }
         this.children.put(child.nodeName, child);
+    }
+
+    /** Appends child nodes
+     * @param child
+     */
+    public void addChild(final String childName, final Tree child) {
+        this.children.put(childName, child);
     }
 
     /** Search for a label node

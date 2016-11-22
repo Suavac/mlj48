@@ -28,8 +28,15 @@ public class Gain {
     List<CSVRecord> indexListB;
 
     List<List<CSVRecord>> subsets = Lists.newArrayList();
+    Map<String, List<CSVRecord>> subsetsDiscrete;
+    Map<String, Map> occurrencesOfLabelsInSubsets;
+    Map subsetsEntropy;
 
-    public Gain(final Attribute attribute, final double entropyA, final double entropyB, final String threshold, final double gain, final HashMap a, final HashMap b, final List indexListA, final List indexListB) {
+
+    public Map getSubsetsDiscrete(){
+        return this.subsetsDiscrete;
+    }
+    public Gain(final Attribute attribute, final double entropyA, final double entropyB, final String threshold, final double gain, final HashMap a, final HashMap b, final List indexListA, final List indexListB, double targetEntr) {
         this.attribute = attribute;
         this.entropyA = entropyA;
         this.entropyB = entropyB;
@@ -41,14 +48,18 @@ public class Gain {
         this.indexListB = indexListB;
         this.subsets.add(indexListA);
         this.subsets.add(indexListB);
+        this.entropyAB=targetEntr;
     }
 
     public Gain(){
-
     }
 
-    public Gain(Attribute attribute, double[] gain, Map<String, List> subsets, Map<String, Map> occurrencesOfLabelsInSubsets, Map subsetsEntropy) {
-
+    public Gain(Attribute attribute, double[] gain, Map<String, List<CSVRecord>> subsets, Map<String, Map> occurrencesOfLabelsInSubsets, Map subsetsEntropy) {
+        this.attribute = attribute;
+        this.informationGain = gain[0];
+        this.subsetsDiscrete = subsets;
+        this.occurrencesOfLabelsInSubsets = occurrencesOfLabelsInSubsets;
+        this.subsetsEntropy = subsetsEntropy;
     }
 
     public String getMostOccurringLabel() {
@@ -71,6 +82,9 @@ public class Gain {
 
     public double getEntropyB() {
         return entropyB;
+    }
+    public double getEntropyAB() {
+        return entropyAB;
     }
 
     public String getValue() {
@@ -96,5 +110,6 @@ public class Gain {
     public List getSubsets() {
         return subsets;
     }
+
 
 }
