@@ -24,8 +24,8 @@ public class Gain {
     private double informationGain;
     HashMap<String, Double> occurrenceA = Maps.newHashMap();
     HashMap<String, Double> occurrenceB = Maps.newHashMap();
-    List<CSVRecord> indexListA;
-    List<CSVRecord> indexListB;
+    List<CSVRecord> recordsBelowEqualThreshold;
+    List<CSVRecord> recordsAboveThreshold;
 
     List<List<CSVRecord>> subsets = Lists.newArrayList();
     Map<String, List<CSVRecord>> subsetsDiscrete;
@@ -44,8 +44,8 @@ public class Gain {
         this.informationGain = gain;
         this.occurrenceA = a;
         this.occurrenceB = b;
-        this.indexListA = indexListA;
-        this.indexListB = indexListB;
+        this.recordsBelowEqualThreshold = indexListA;
+        this.recordsAboveThreshold = indexListB;
         this.subsets.add(indexListA);
         this.subsets.add(indexListB);
         this.entropyAB=targetEntr;
@@ -100,11 +100,11 @@ public class Gain {
     }
 
     public List getLeftSubset() {
-        return indexListA;
+        return recordsBelowEqualThreshold;
     }
 
     public List getRightSubset() {
-        return indexListB;
+        return recordsAboveThreshold;
     }
 
     public List getSubsets() {
