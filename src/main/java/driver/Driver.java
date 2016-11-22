@@ -18,8 +18,8 @@ public class Driver {
        // GUI a = new GUI();
 
         ///http://clear-lines.com/blog/post/Discretizing-a-continuous-variable-using-Entropy.aspx
-        for(int i = 0; i< 10; i++){
-            final PreprocessedData ppd = new PreprocessedData("owls15.csv");
+        for(int i = 0; i< 100000; i++){
+            final PreprocessedData ppd = new PreprocessedData("owls15Discrete.csv");
             //final PreprocessedData ppd = new PreprocessedData("owls15.csv");
             ppd.splitTrainingTestPercentage(0.8);
             final Classifier classifier = new C45();

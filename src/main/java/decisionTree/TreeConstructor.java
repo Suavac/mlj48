@@ -46,6 +46,7 @@ public class TreeConstructor {
             reducedAttributesList.remove(maximumGain.getAttribute().getName());
             maximumGain.getSubsetsDiscrete().forEach( (value,subset) ->
                     node.addChild(
+                            maximumGain.getAttribute(),
                             value.toString(),
                             constructDecisionTree((List<CSVRecord>) subset, reducedAttributesList, target) )
             );
