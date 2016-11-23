@@ -1,5 +1,6 @@
 package decisionTree;
 
+import classifier.ClassifierType;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import driver.Attribute;
@@ -15,13 +16,15 @@ import java.util.List;
 /**
  * Created by Suavek on 15/11/2016.
  */
-public class Tree implements Serializable {
+public class Tree implements Serializable, ClassifierType {
 
     private Attribute attribute;
     private String nodeName;
     private String value;
     private final HashMap<String, Tree> childrenNominal= Maps.newLinkedHashMap();
     private final List<Tree> childrenContinous= Lists.newLinkedList();
+    int size;
+    int leaves;
 
     /** Constructs a leaf node
      * @param label
@@ -31,6 +34,8 @@ public class Tree implements Serializable {
         this.nodeName = label;
         this.value = nodeName;
         this.attribute = targetAttribute;
+        leaves++;
+        size++;
     }
 
     /** Constructs a decision node
@@ -40,6 +45,7 @@ public class Tree implements Serializable {
         this.nodeName = gain.getAttributeName();
         this.value = gain.getValue();
         this.attribute = gain.getAttribute();
+        size++;
     }
 
 
@@ -93,6 +99,12 @@ public class Tree implements Serializable {
             // Classifier does not know this value
             return " ";
         }
+    }
+
+
+    @Override
+    public ClassifierType getClassifier() {
+        return this;
     }
 }
 

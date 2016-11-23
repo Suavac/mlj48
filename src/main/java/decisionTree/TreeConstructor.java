@@ -31,7 +31,8 @@ public class TreeConstructor {
         if (!(targetEntropy > 0)) {
             // extract label
             final CSVRecord instance = Iterables.get(dataSet, 0);
-            System.out.println("\n------------------" + instance.get(target.getName()) + "\n");
+
+            System.out.println("\n------------------" + instance.get(target.getName()) + "\n\n");
             // create and return new node of target type
             return new Tree(instance.get(target.getName()), target);
         }
@@ -41,7 +42,7 @@ public class TreeConstructor {
         dataSet.removeAll(dataSet); // remove processed data
         
         if (Pruning.getSplitCriterion(maximumGain))
-            System.out.println("\nFeature: " + maximumGain.getAttributeName() + "\nGAIN: " + maximumGain.getGain() + "\nTHRESHOLD: " + maximumGain.getValue() + "\nSPLIT :" + Pruning.getSplitCriterion(maximumGain));
+            System.out.println("\nFeature: " + maximumGain.getAttributeName() + "\nGAIN: " + maximumGain.getGain() + "\nTHRESHOLD: " + maximumGain.getValue() + "\nSPLIT :" + Pruning.getSplitCriterion(maximumGain) + "\n");
 
         // Create new decision node using attribute that gives the biggest gain
         final Tree node = new Tree(maximumGain);
@@ -260,6 +261,7 @@ public class TreeConstructor {
         });
         // return sorted list of unique thresholds
         return new ArrayList(thresholds);
+
     }
 
     /**
@@ -316,4 +318,5 @@ public class TreeConstructor {
     public Tree getDecisionTree() {
         return root;
     }
+
 }

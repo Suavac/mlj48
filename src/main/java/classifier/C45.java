@@ -6,6 +6,7 @@ import driver.Attribute;
 import driver.PreprocessedData;
 import org.apache.commons.csv.CSVRecord;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,7 +16,8 @@ import java.util.List;
  */
 public class C45 implements Classifier {
 
-    Tree decisionTree;
+    public Tree decisionTree;
+    private double accuracy;
 
     @Override
     public void train(final PreprocessedData ppd) {
@@ -23,19 +25,54 @@ public class C45 implements Classifier {
         // choose target - assuming that target is a last column
         final Attribute targetAttribute = (Attribute) attributes.get(ppd.getTargetName());
         final List<CSVRecord> dataSet = ppd.getTrainingDataSet();
-        this.decisionTree = new TreeConstructor(dataSet, attributes, targetAttribute).getDecisionTree();
+        TreeConstructor treeConstructor = new TreeConstructor(dataSet, attributes, targetAttribute);
+        this.decisionTree = treeConstructor.getDecisionTree();
+
     }
 
     @Override
     public void test(final PreprocessedData ppd) {
+
         final List<CSVRecord> dataSet =  ppd.getTestingDataSet();
-        for (final CSVRecord instance : dataSet) {
-            final String predicted = decisionTree.search(decisionTree, instance);
+
+        try {
+            //File file = File.createTempFile("/Users/jamesfallon/Downloads/owls16", ".tmp");
+            PrintWriter printWriter = new PrintWriter(new File("/Users/jamesfallon/Downloads/owls17.csv"));
+            printWriter.println("actual,predicted,error");
+
+            System.out.println(dataSet.size());
+            for (CSVRecord instance : dataSet){
+
+                String actual = instance.get(ppd.getTargetName());
+                String predicted = classify(instance);
+                String error = actual.equals(predicted) ? "" : "+";
+
+                printWriter.println(actual + "," + predicted + "," + error);
+            }
+
+            printWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+
+
+
+
+
     }
 
     @Override
-    public void classify(final PreprocessedData ppd) {
+    public String classify(final CSVRecord instance) {
+        return decisionTree.search(decisionTree, instance);
+    }
 
+    @Override
+    public ClassifierType getClassifier() {
+        return decisionTree;
+    }
+
+    @Override
+    public double getAccuracy() {
+        return accuracy;
     }
 }

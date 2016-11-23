@@ -79,12 +79,15 @@ public class PreprocessedData {
     public void splitTrainingTestPercentage(double splitPercent) {
         int numberOfTrainingSamples = (int) Math.ceil(getDataSet().size() * splitPercent);
         int numberOfTestingSamples = getDataSet().size() - numberOfTrainingSamples;
+
+        List instancesLocalSet = Lists.newArrayList(getDataSet());
+
         for(int i = 0 ; i < numberOfTestingSamples ; i++){
-            CSVRecord tmpSample = (CSVRecord) getDataSet().get(ThreadLocalRandom.current().nextInt(0, getDataSet().size()));
+            CSVRecord tmpSample = (CSVRecord) getDataSet().get(ThreadLocalRandom.current().nextInt(0, instancesLocalSet.size()));
             this.testingSet.add(tmpSample);
-            getDataSet().remove(tmpSample);
+            instancesLocalSet.remove(tmpSample);
         }
-        this.trainingSet = data.getDataSet();
+        this.trainingSet = instancesLocalSet;
     }
 
     public List getDataSet() {
