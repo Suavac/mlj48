@@ -33,9 +33,10 @@ public class Gain {
     Map subsetsEntropy;
 
 
-    public Map getSubsetsDiscrete(){
+    public Map getSubsetsDiscrete() {
         return this.subsetsDiscrete;
     }
+
     public Gain(final Attribute attribute, final double entropyA, final double entropyB, final String threshold, final double gain, final HashMap a, final HashMap b, final List indexListA, final List indexListB, double targetEntr) {
         this.attribute = attribute;
         this.entropyA = entropyA;
@@ -48,10 +49,10 @@ public class Gain {
         this.recordsAboveThreshold = indexListB;
         this.subsets.add(indexListA);
         this.subsets.add(indexListB);
-        this.entropyAB=targetEntr;
+        this.entropyAB = targetEntr;
     }
 
-    public Gain(){
+    public Gain() {
     }
 
     public Gain(Attribute attribute, double[] gain, Map<String, List<CSVRecord>> subsets, Map<String, Map> occurrencesOfLabelsInSubsets, Map subsetsEntropy) {
@@ -62,10 +63,12 @@ public class Gain {
         this.subsetsEntropy = subsetsEntropy;
     }
 
-    /** Method returns most occurring label
-     *  Used in pre-pruning when decision is made on not spiting further
-     *  The Gain object holds information on labels occurrences in two subsets
-     *  and this method extract most occurring value in both both
+    /**
+     * Method returns most occurring label
+     * Used in pre-pruning when decision is made on not spiting further
+     * The Gain object holds information on labels occurrences in two subsets
+     * and this method extract most occurring value in both both
+     *
      * @return
      */
     public String getMostOccurringLabel() {
@@ -91,6 +94,7 @@ public class Gain {
     public double getEntropyB() {
         return entropyB;
     }
+
     public double getEntropyAB() {
         return entropyAB;
     }

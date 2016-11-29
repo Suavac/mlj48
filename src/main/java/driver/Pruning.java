@@ -28,8 +28,8 @@ public class Pruning {
         final double entropyA = gain.getEntropyA();
         final double entropyB = gain.getEntropyB();
         final double entropyAB = gain.getEntropyAB();
-        final double sizeA = gain.recordsBelowEqualThreshold !=null ? gain.recordsBelowEqualThreshold.size() : 0;
-        final double sizeB = gain.recordsAboveThreshold !=null ? gain.recordsAboveThreshold.size() : 0;
+        final double sizeA = gain.recordsBelowEqualThreshold != null ? gain.recordsBelowEqualThreshold.size() : 0;
+        final double sizeB = gain.recordsAboveThreshold != null ? gain.recordsAboveThreshold.size() : 0;
         final double N = sizeA + sizeB;
         final double A = gain.occurrenceA.size();
         final double B = gain.occurrenceB.size();
@@ -41,7 +41,7 @@ public class Pruning {
 
         double leftSideOfFormula = ((1 / N) * (Math.log(N - 1) / Math.log(2))) +
                 (1 / N) * ((Math.log(Math.pow(3, AuB) - 2) / Math.log(2)) - (AuB * entropyAB) - (A * entropyA) - (B * entropyB));
-        if(leftSideOfFormula<0) leftSideOfFormula *= 1;
+        if (leftSideOfFormula < 0) leftSideOfFormula *= 1;
         return gainValue > 0 && gainValue >= leftSideOfFormula;
     }
 

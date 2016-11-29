@@ -23,7 +23,7 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>driver.Driver</mainClass>
+                  <mainClass>driver.GUIDriver</mainClass>
                 </transformer>
               </transformers>
             </configuration>

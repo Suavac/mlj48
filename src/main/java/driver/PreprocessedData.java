@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Created by 12100888 on 08/11/2016.
+ * Created by Suavek on 08/11/2016.
  */
 public class PreprocessedData {
 
@@ -43,37 +43,41 @@ public class PreprocessedData {
         // get target name, assuming position in last column
         this.targetName = attributeNames.get(attributeNames.size() - 1);
         // set the target
-        // TODO plug-in to GUI, allow user to choose target from the nominal features
         this.attributes.get(targetName).setAsTarget();
     }
 
     //http://www.saedsayad.com/decision_tree.htm
-    /** Method creates and returns an Attribute object with assigned type :
-     *  All records of an attribute are tested towards converting to a Double
-     *  If exception occurs then it indicates that Attribute consists of nominal values
-     *  therefore is not continuous
+
+    /**
+     * Method creates and returns an Attribute object with assigned type :
+     * All records of an attribute are tested towards converting to a Double
+     * If exception occurs then it indicates that Attribute consists of discrete values
+     * therefore is not continuous
+     *
      * @param dataRecords
      * @param attributeName
      * @return
      */
     public static Attribute createAttribute(final Iterable<CSVRecord> dataRecords, final String attributeName) {
-            // Check if attribute is continuous
-            boolean isContinuous = true;
-            for (final CSVRecord record : dataRecords) {
-                try {
-                    final String value = record.get(attributeName);
-                    if (!value.trim().equals("")) {
-                        Double.parseDouble(record.get(attributeName));
-                    }
-                } catch (final NumberFormatException e) {
-                    isContinuous = false;
-                    return new Attribute(attributeName, isContinuous);
+        // Check if attribute is continuous
+        boolean isContinuous = true;
+        for (final CSVRecord record : dataRecords) {
+            try {
+                final String value = record.get(attributeName);
+                if (!value.trim().equals("")) {
+                    Double.parseDouble(record.get(attributeName));
                 }
+            } catch (final NumberFormatException e) {
+                isContinuous = false;
+                return new Attribute(attributeName, isContinuous);
             }
+        }
         return new Attribute(attributeName, isContinuous);
     }
 
-    /** Method splits the data set into 2 subsets of random values by percentage given as parameter
+    /**
+     * Method splits the data set into 2 subsets of random values by percentage given as parameter
+     *
      * @param splitPercent
      */
     public void splitTrainingTestPercentage(double splitPercent) {
@@ -82,7 +86,7 @@ public class PreprocessedData {
 
         List instancesLocalSet = Lists.newArrayList(getDataSet());
 
-        for(int i = 0 ; i < numberOfTestingSamples ; i++){
+        for (int i = 0; i < numberOfTestingSamples; i++) {
             CSVRecord tmpSample = (CSVRecord) getDataSet().get(ThreadLocalRandom.current().nextInt(0, instancesLocalSet.size()));
             this.testingSet.add(tmpSample);
             instancesLocalSet.remove(tmpSample);
@@ -93,12 +97,14 @@ public class PreprocessedData {
     public List getDataSet() {
         return this.data.getDataSet();
     }
+
     public List getTrainingDataSet() {
         return this.trainingSet.size() > 0 ?
-                this.trainingSet:
+                this.trainingSet :
                 this.data.getDataSet();
 
     }
+
     public List getTestingDataSet() {
         return this.testingSet;
     }
@@ -106,9 +112,11 @@ public class PreprocessedData {
     public HashMap<String, Attribute> getAttributes() {
         return this.attributes;
     }
+
     public ArrayList<String> getAttributeNames() {
         return this.attributeNames;
     }
+
     public String getTargetName() {
         return this.targetName;
     }

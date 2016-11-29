@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 import java.util.*;
 
 /**
- * Created by 12100888 on 07/11/2016.
+ * Created by Suavek on 07/11/2016.
  */
 public class TreeConstructor {
 
@@ -22,6 +22,15 @@ public class TreeConstructor {
     public TreeConstructor(final List<CSVRecord> dataSet, final HashMap attributes, final Attribute targetAttribute) {
         this.root = constructDecisionTree(dataSet, attributes, targetAttribute);
     }
+
+    /**
+     * Iterative method that constructs a decision tree based on the given dataset.
+     *
+     * @param dataSet    - List of classified examples to train on
+     * @param attributes - List of attributes
+     * @param target     - The target attribute
+     * @return
+     */
     //http://blog.takipi.com/benchmark-how-java-8-lambdas-and-streams-can-make-your-code-5-times-slower/ lambda performance
     private static Tree constructDecisionTree(final List<CSVRecord> dataSet, final HashMap<String, Attribute> attributes, final Attribute target) {
 
@@ -40,7 +49,7 @@ public class TreeConstructor {
         // holds information on the attribute that gives the maximum gain
         final Gain maximumGain = getMaximumGain(dataSet, attributes, target, targetEntropy);
         dataSet.removeAll(dataSet); // remove processed data
-        
+
         if (Pruning.getSplitCriterion(maximumGain))
             System.out.println("\nFeature: " + maximumGain.getAttributeName() + "\nGAIN: " + maximumGain.getGain() + "\nTHRESHOLD: " + maximumGain.getValue() + "\nSPLIT :" + Pruning.getSplitCriterion(maximumGain) + "\n");
 
@@ -48,17 +57,17 @@ public class TreeConstructor {
         final Tree node = new Tree(maximumGain);
 
         // Add children
-        // If Attribute is of type Nominal
-        if(!maximumGain.getAttribute().isContinuous()){
-            // Exclude attribute from next iteration
+        // If Attribute is discrete
+        if (!maximumGain.getAttribute().isContinuous()) {
+            //Exclude attribute from the next iteration
             HashMap<String, Attribute> reducedAttributesList = (HashMap<String, Attribute>) SerializationUtils.clone(attributes);
             reducedAttributesList.remove(maximumGain.getAttribute().getName());
-            // Create children nodes given names of the Nominal Attribute values
-            maximumGain.getSubsetsDiscrete().forEach( (value, subset) ->
+            // reate children nodes given names of the discrete Attribute values
+            maximumGain.getSubsetsDiscrete().forEach((value, subset) ->
                     node.addChild(
                             maximumGain.getAttribute(),
                             value.toString(),
-                            constructDecisionTree((List<CSVRecord>) subset, reducedAttributesList, target) )
+                            constructDecisionTree((List<CSVRecord>) subset, reducedAttributesList, target))
             );
         } else {
             // grow only if growth improves impurity measure
@@ -82,7 +91,9 @@ public class TreeConstructor {
         return node;
     }
 
-    /** Method iterates through all attributes searching for and returning the biggest gain
+    /**
+     * Method iterates through all attributes searching for and returning the biggest gain
+     *
      * @param dataSet
      * @param attributes
      * @param target
@@ -92,8 +103,8 @@ public class TreeConstructor {
     private static Gain getMaximumGain(List<CSVRecord> dataSet, HashMap<String, Attribute> attributes, Attribute target, double targetEntropy) {
         final Gain[] maxGain = {null};
         // for each attribute excluding target
-        attributes.forEach((attributeName, attribute )-> {
-            if(attribute.isTarget())
+        attributes.forEach((attributeName, attribute) -> {
+            if (attribute.isTarget())
                 return;
             // Calculate gain
             final Gain gainOfAnAttribute = getGain(dataSet, attribute, target, targetEntropy);
@@ -108,7 +119,9 @@ public class TreeConstructor {
     }
 
 
-    /** Method calculates and returns gain of a given Attribute
+    /**
+     * Method calculates and returns gain of a given Attribute
+     *
      * @param dataSet
      * @param attribute
      * @param target
@@ -117,11 +130,11 @@ public class TreeConstructor {
      */
     private static Gain getGain(final List<CSVRecord> dataSet, final Attribute attribute, final Attribute target, final double targetEntropy) {
         final Gain[] finalGain = {new Gain()};
-        // Create thresholds for either Nominal or Continuous data 
+        // Create thresholds for either Discrete or Continuous data
         final ArrayList<String> thresholds = createThresholdsForAttribute(dataSet, attribute, target);
         // if Attribute is Continuous then find gains for each from given thresholds and return biggest 
         if (attribute.isContinuous()) {
-            thresholds.forEach( threshold -> {
+            thresholds.forEach(threshold -> {
                 // Calculate gain of Continuous Attribute based on a given threshold
                 final Gain tmp = getContinuousAttributeGain(dataSet, attribute, target, targetEntropy, threshold);
                 // if greater than previous then set as new biggest
@@ -131,47 +144,52 @@ public class TreeConstructor {
             });
             return finalGain[0];
         } else {
-            // Otherwise, calculate gain for the Nominal Attribute
-            return getNominalAttributeGain(dataSet, attribute, target, targetEntropy, thresholds);
+            // Otherwise, calculate gain for the Discrete Attribute
+            return getDiscreteAttributeGain(dataSet, attribute, target, targetEntropy, thresholds);
         }
     }
 
 
-    /** Method calculates and returns gain of a Nominal Attribute
+    /**
+     * This method calculates and returns the information gain of a discrete atrribute.
+     *
      * @param dataSet
      * @param attribute
      * @param target
      * @param targetEntropy
-     * @param thresholds
+     * @param uniqueAttributeValues
+     * @author jamesfallon
      * @return
      */
-    public static Gain getNominalAttributeGain(final List<CSVRecord> dataSet, final Attribute attribute, final Attribute target, final double targetEntropy, final ArrayList<String> thresholds) {
-        // holds subsets associated with different values
-        Map<String,List<CSVRecord>> subsets = Maps.newLinkedHashMap();
-        // holds information on labels distribution within each subset
+    public static Gain getDiscreteAttributeGain(final List<CSVRecord> dataSet, final Attribute attribute, final Attribute target, final double targetEntropy, final ArrayList<String> uniqueAttributeValues) {
+
+        //Map to hold subsets for each unique attribute value
+        Map<String, List<CSVRecord>> subsets = Maps.newLinkedHashMap();
+
+        //Map to hold the count of each target value for each unique attribute value
         Map<String, Map> occurrencesOfLabelsInSubsets = Maps.newLinkedHashMap();
-        // for each unique value of an attribute
-        thresholds.forEach( value -> {
-            // holds dataSet instances associated with the given value
+
+        uniqueAttributeValues.forEach(value -> {
+            //Holds examples that have the given attribute value
             final List<CSVRecord> subset = Lists.newArrayList();
-            // for each instance in the dataSet, associate with the threshold value and place in a subset list
-            dataSet.forEach( instance -> {
-                if(value.equals(instance.get(attribute.getName()))){
-                    subset.add(instance);
+            //Loop through all examples and if that example contains the attribute value add it to the subset
+            dataSet.forEach(example -> {
+                if (value.equals(example.get(attribute.getName()))) {
+                    subset.add(example);
                 }
             });
-            // add subset to the list of subsets
-            subsets.put(value,subset);
-            // add corresponding labels occurrence map
-            occurrencesOfLabelsInSubsets.put(value.toString(), countDecisionClassLabels(subset,target));
+            //Add subset to the list of subsets
+            subsets.put(value, subset);
+            //Add the target values count for this unique attribute value
+            occurrencesOfLabelsInSubsets.put(value.toString(), countDecisionClassLabels(subset, target));
         });
 
-        // holds information on entropy of each subset
+        //Map to hold the entropy of each subset
         Map subsetsEntropies = Maps.newLinkedHashMap();
         final double[] gain = {targetEntropy};
-        // iterate through the list of subsets, extract individual information and calculate gain of the entire dataSet
-        subsets.forEach( (value, subset) -> {
-            double probabilityOfSubset = (double)subset.size()/(double)dataSet.size();
+        //Iterate through the list of subsets, extract individual information gain and calculate gain of the entire dataSet
+        subsets.forEach((value, subset) -> {
+            double probabilityOfSubset = (double) subset.size() / (double) dataSet.size();
             double entropyOfSubset = calculateEntropy(subset, target);
             gain[0] -= (probabilityOfSubset * entropyOfSubset);
             subsetsEntropies.put(value, entropyOfSubset);
@@ -179,7 +197,9 @@ public class TreeConstructor {
         return new Gain(attribute, gain, subsets, occurrencesOfLabelsInSubsets, subsetsEntropies);
     }
 
-    /** Method calculates and returns gain of the Continuous Attribute
+    /**
+     * Method calculates and returns gain of the Continuous Attribute
+     *
      * @param dataSet
      * @param attribute
      * @param target
@@ -192,15 +212,15 @@ public class TreeConstructor {
         final List instancesBelowThreshold = Lists.newArrayList();
         final List instancesAboveThreshold = Lists.newArrayList();
         // for each instance in the dataSet
-        dataSet.forEach( instance -> {
+        dataSet.forEach(instance -> {
             // Get Attribute's value from the current instance
             final String value = instance.get(attribute.getName());
-                // if value smaller equal than threshold, associate instance with the left subset, otherwise right
-                if (new BigDecimal(value).compareTo(new BigDecimal(threshold)) <= 0) {
-                    instancesBelowThreshold.add(instance);
-                } else {
-                    instancesAboveThreshold.add(instance);
-                }
+            // if value smaller equal than threshold, associate instance with the left subset, otherwise right
+            if (new BigDecimal(value).compareTo(new BigDecimal(threshold)) <= 0) {
+                instancesBelowThreshold.add(instance);
+            } else {
+                instancesAboveThreshold.add(instance);
+            }
         });
 
         // Calculate information gain
@@ -222,10 +242,12 @@ public class TreeConstructor {
         final HashMap decisionClassesLeft = countDecisionClassLabels(instancesBelowThreshold, target);
         final HashMap decisionClassesRight = countDecisionClassLabels(instancesAboveThreshold, target);
 
-        return new Gain(attribute, entropyA, entropyB, threshold, gain, decisionClassesLeft, decisionClassesRight, instancesBelowThreshold, instancesAboveThreshold,targetEntropy);
+        return new Gain(attribute, entropyA, entropyB, threshold, gain, decisionClassesLeft, decisionClassesRight, instancesBelowThreshold, instancesAboveThreshold, targetEntropy);
     }
 
-    /** Method generates thresholds for the Continuous and Nominal Attributes
+    /**
+     * Method generates thresholds for the Continuous and Discrete Attributes
+     *
      * @param dataSet
      * @param attribute
      * @param target
@@ -235,9 +257,9 @@ public class TreeConstructor {
         // Holds unique values of thresholds i ascending order
         final TreeSet thresholds = new TreeSet<>();
         // if discrete data then return all unique values
-        if(!attribute.isContinuous()){
+        if (!attribute.isContinuous()) {
             // get unique values of an attribute
-            dataSet.forEach( instance -> thresholds.add(instance.get(attribute.getName())));
+            dataSet.forEach(instance -> thresholds.add(instance.get(attribute.getName())));
             return new ArrayList(thresholds);
         }
 
@@ -247,7 +269,7 @@ public class TreeConstructor {
         // extract thresholds by checking at what points the decision class changes
         final CSVRecord[] previousInstance = {dataSet.get(0)};
         // for every instance in the dataSet
-        dataSet.forEach( instance -> {
+        dataSet.forEach(instance -> {
             // compare current and previous labels
             final String previousLabel = previousInstance[0].get(target.getName());
             final String currentLabel = instance.get(target.getName());
@@ -279,7 +301,7 @@ public class TreeConstructor {
         final double[] entropy = {0};
         // for each label in the countMap get its corresponding occurrences
         // and use to calculate probabilities for entropy calculation
-        countMap.keySet().forEach( key -> {
+        countMap.keySet().forEach(key -> {
             final double probabilityOfValue = (
                     Double.parseDouble(
                             String.valueOf(countMap.get(key)))
@@ -292,7 +314,7 @@ public class TreeConstructor {
     }
 
     /**
-     * Method counts occurrences of decision class labels in a given set of data
+     * This method gets the number of occurrences of each target value.
      *
      * @param dataSet
      * @param target
@@ -300,12 +322,12 @@ public class TreeConstructor {
      */
     public static HashMap countDecisionClassLabels(final List<CSVRecord> dataSet, final Attribute target) {
         final HashMap countMap = Maps.newHashMap();
-        // for each instance in the dataSet add count occurrences of labels
-        dataSet.forEach( instance -> {
-            // count occurrences of labels
+        // For each instance in the dataSet add that target value to the map or increment the count if it exists
+        dataSet.forEach(instance -> {
+
             final String label = instance.get(target.getName()).toString();
             if (!countMap.containsKey(label)) {
-                countMap.put(label, (double) 1L);
+                countMap.put(label, (double) 1);
             } else {
                 Double count = (Double) countMap.get(label);
                 count = count + 1;

@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by 12100888 on 08/11/2016.
+ * Created by Suavek on 08/11/2016.
  */
 public class CSVReader {
 
@@ -21,8 +21,6 @@ public class CSVReader {
 
     public CSVReader(String filePath) throws IOException {
         // Get and read File
-        //final File file = new File("/Users/jamesfallon/Documents/College Work/16_17/Machine Learning [CT475]/Assignment 3/mlj48/src/main/resources/owls15.csv");
-        //final File file = new File(getClass().getClassLoader().getResource(filePath).getFile());
         final File file = new File(filePath);
         final Reader fileReader = new FileReader(file);
         // Parse file

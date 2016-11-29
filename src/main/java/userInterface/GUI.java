@@ -1,10 +1,8 @@
 package userInterface;
 
 import classifier.C45;
-import classifier.Classifier;
-import classifier.ClassifierType;
-import decisionTree.Tree;
-import driver.Driver;
+import classifier.Results;
+import driver.GUIDriver;
 import driver.PreprocessedData;
 
 import javax.swing.*;
@@ -14,69 +12,87 @@ import java.io.File;
 
 
 /**
- * Created by 12100888 on 21/11/2016.
+ * Created by jamesfallon on 21/11/2016.
+ *
+ * This class is the entry point for the application. It defines and opens a GUI for the application.
  */
 public class GUI {
 
     JFrame gui;
 
-    //public List<String> discreteAttributes = new ArrayList<String>();
-    //public String target;
+    public static void main(final String... args) throws Exception {
+        GUI gui = new GUI();
+    }
 
+    /**
+     * @throws Exception
+     * @author jamesfallon
+     */
     public GUI() throws Exception {
 
 
-        Driver driver = new Driver();
-
-        //1. Create the frame.
-        JFrame frame = new JFrame("FrameDemo");
-
-        //2. Optional: What happens when the frame closes?
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-
-        //3. Create components and put them in the frame.
-        //...create emptyLabel...
-        //frame.getContentPane().add(new String("sd"), BorderLayout.CENTER);
-
-
         /**
-         * Setup a GridBagLayout
+         * Create a GUIDriver object. This will be used as a go-between for the GUI and the algorithm.
+         * Initialise the training percentage as 66%.
          */
 
-        //Set frame to use a grid bag layout
-        frame.setLayout(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
+        GUIDriver driver = new GUIDriver(0.66, new C45());
 
+        /**
+         * Create the frame.
+         */
+
+        JFrame frame = new JFrame("C4.5 Classifier");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setLayout(new FlowLayout());
+
+        /**
+         * Create a panel for storing options
+         */
+
+        JPanel optionsPanel = new JPanel();
+        optionsPanel.setLayout(new GridBagLayout());
 
         /**
          * Create and initialize components
          */
 
 
+        //Button which opens a file chooser window.
         JButton fileChooserButton = new JButton("Open dataset...");
 
+        //Label which displays what file has been selected
         JLabel selectedFile = new JLabel();
+        selectedFile.setText("             No file has been selected");
         selectedFile.setLabelFor(fileChooserButton);
 
-
-        //JComboBox<String> targetChooser = new JComboBox<>();
-
-        //JLabel targetChooserLabel = new JLabel("Target Attribute:");
-        //targetChooserLabel.setLabelFor(targetChooser);
-
+        //Text field which is used to input the training split percentage
         JTextField trainingSplitPercentageTextField = new JTextField();
         trainingSplitPercentageTextField.setText(Double.toString(driver.getTrainingSplitPercentage()));
 
-        JLabel trainingSplitPercentageLabel = new JLabel("Training Split Percentage:");
+        //Label for the training split percentage text field
+        JLabel trainingSplitPercentageLabel = new JLabel("  Percentage of dataset to train on:");
         trainingSplitPercentageLabel.setLabelFor(trainingSplitPercentageTextField);
 
-        JTextArea textDisplay = new JTextArea(20,20);
+        //Text field for specifying the number of decision trees to create
+        JTextField numberOfTreesToCreateTextField = new JTextField();
+        numberOfTreesToCreateTextField.setText("10");
+
+        //Label for the 'number of trees to create' text field.
+        JLabel numberOfTimesToRunLabel = new JLabel("  Number of trees to create:");
+        numberOfTimesToRunLabel.setLabelFor(numberOfTreesToCreateTextField);
+
+        //Text area which displays the results of the algorithm
+        JTextArea textDisplay = new JTextArea(40, 40);
         textDisplay.setEditable(false);
         JScrollPane display = new JScrollPane(textDisplay);
 
-        JButton trainButton = new JButton("Train");
-        JButton testButton = new JButton("Test");
+        //Button that runs the algorithm
+        JButton runButton = new JButton("Run");
+
+        //Button that saves the results to a file. Only visible once the algorithm has successfully run
+        JButton saveResultsButton = new JButton("Save Results");
+        saveResultsButton.setVisible(false);
 
 
         /**
@@ -96,7 +112,8 @@ public class GUI {
             if (returnValue == JFileChooser.APPROVE_OPTION) {
                 File file = fileChooser.getSelectedFile();
                 try {
-                    selectedFile.setText(file.getName());
+                    selectedFile.setText(file.getAbsolutePath());
+                    driver.setPpd(new PreprocessedData(file.getAbsolutePath()));
 
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(null, "Not a valid csv file.");
@@ -107,143 +124,217 @@ public class GUI {
             }
         });
 
-        /*//Add action listener that updates the value of target when
-        //the user selects a different option from the dropdown
-        targetChooser.addActionListener( e -> {
-            JComboBox updated = (JComboBox)e.getSource();
-            target = (String)updated.getSelectedItem();
-        });
-        */
+        saveResultsButton.addActionListener(e -> {
 
-        /*trainingSplitPercentageTextField.addActionListener( e -> {
-            JTextField updated = (JTextField)e.getSource();
-            driver.setTrainingSplitPercentage(updated.getText());
+            JFileChooser fileChooser = new JFileChooser();
 
-        });*/
+            //Program currently only supports CSV files
 
-        trainButton.addActionListener(e -> {
-            try {
+            int returnValue = fileChooser.showSaveDialog(new JFrame());
+            if (returnValue == JFileChooser.APPROVE_OPTION) {
 
-                //Check if the split percentage is valid
+                File file = fileChooser.getSelectedFile();
 
-                int splitPercent = Integer.parseInt(trainingSplitPercentageTextField.getText());
-                if ((splitPercent < 100) && (splitPercent > 1)) {
-                    driver.setTrainingSplitPercentage((double)splitPercent/100.00);
+                try {
+                    driver.getResults().printResultsToFile(file.getAbsolutePath());
+                } catch (Exception e1) {
+                    e1.printStackTrace();
                 }
-                else{
-                    throw new Exception();
-                }
-
             }
-            catch(Exception ex){
-                JOptionPane.showMessageDialog(null, "Please enter a value between 1 and 100 for the training/test split percentage.");
+        });
+
+        runButton.addActionListener(e -> {
+
+            //Check that a file has been selected
+            if (driver.getPpd() == null) {
+                JOptionPane.showMessageDialog(null, "Please specify a file to use.");
+                return;
+            }
+
+            //Check that the number entered for the training split percentage is a double
+            try {
+                double split = Double.parseDouble(trainingSplitPercentageTextField.getText());
+
+                if (!(split < 1.0 && split > 0.0)) {
+                    throw new NumberFormatException();
+                }
+            } catch (final NumberFormatException nfe) {
+                JOptionPane.showMessageDialog(null, "Please enter a value between 0 and 1 for the training split percentage.");
                 return;
             }
 
             //Check if the 'number of times to run' is valid
+            try {
 
-            //TODO
+                int treesToCreate = Integer.parseInt(numberOfTreesToCreateTextField.getText());
 
-        });
+                if (treesToCreate <= 0 || treesToCreate > 50) {
+                    throw new NumberFormatException();
+                }
 
-        testButton.addActionListener(e -> {
-            double accuracy = driver.test();
-            textDisplay.setText("Testing complete.\nAccuracy: "+accuracy);
+
+            } catch (final NumberFormatException nfe) {
+                JOptionPane.showMessageDialog(null, "Please enter a valid number of trees to create (1-50).");
+                return;
+            }
+
+            //Both numbers are OK so store them
+            double trainingSplitPercentage = Double.parseDouble(trainingSplitPercentageTextField.getText());
+            int numberOfTreesToCreate = Integer.parseInt(numberOfTreesToCreateTextField.getText());
+
+
+            /**
+             * Run the C45 algorithm for the number of times specified
+             */
+
+
+            //Hold aggregate values
+            String resultText = "";
+            double[] accuracies = new double[numberOfTreesToCreate];
+
+
+            for (int i = 0; i < numberOfTreesToCreate; i++) {
+
+                //Create a new PreprocessedData instance
+                try {
+                    driver.setPpd(new PreprocessedData(selectedFile.getText()));
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
+                driver.setTrainingSplitPercentage(trainingSplitPercentage);
+                driver.train();
+                driver.test();
+                Results results = driver.getResults();
+
+                //Specify what tree these results belong to
+                resultText = resultText.concat("Tree " + (i + 1) + ":\n\n");
+
+                double classificationAccuracy = results.getAccuracy();
+                accuracies[i] = classificationAccuracy;
+
+                //Print the accuracy and confusion matrix
+                resultText = resultText.concat("Classification Accuracy: " + results.getAccuracy() + "\n\n");
+                resultText = resultText.concat(results.getConfusionMatrix());
+
+                resultText = resultText.concat("\n");
+                resultText = resultText.concat("__________________________________________________\n\n");
+            }
+
+            //Print results to the display
+            textDisplay.setText(resultText);
+            saveResultsButton.setVisible(true);
+
+            //Calculate and print the mean classification accuracy
+            double sum = 0.0;
+
+            for (double d : accuracies) sum += d;
+
+            double meanAccuracy = sum / (double) accuracies.length;
+
+            textDisplay.append("Mean Classification Accuracy: " + meanAccuracy);
+
         });
 
 
         /**
          * Display the components.
          *
+         */
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.anchor = GridBagConstraints.LINE_START;
+        gbc.weightx = 2;
+        gbc.weighty = 4;
+
+        /**
          * Column 1:
          */
 
         //Row 1
 
-        gbc.weightx = 1;
-        gbc.weighty = 1;
-
         gbc.gridx = 0;
         gbc.gridy = 0;
 
-        frame.add(fileChooserButton, gbc);
+        optionsPanel.add(fileChooserButton, gbc);
 
         //Row 2
 
-        gbc.gridy++;
+        gbc.gridx = 0;
+        gbc.gridy = 1;
 
-        frame.add(trainingSplitPercentageLabel, gbc);
+        optionsPanel.add(trainingSplitPercentageLabel, gbc);
 
         //Row 3
 
-        gbc.gridy++;
+        gbc.gridx = 0;
+        gbc.gridy = 2;
 
+        optionsPanel.add(numberOfTimesToRunLabel, gbc);
 
 
         //Row 4
 
-        gbc.gridy++;
+        gbc.gridx = 0;
+        gbc.gridy = 3;
 
-        frame.add(trainButton, gbc);
+        optionsPanel.add(runButton, gbc);
 
         /**
          * Column 2:
          **/
+
+        gbc.anchor = GridBagConstraints.LINE_END;
 
         //Row 1
 
         gbc.gridx = 1;
         gbc.gridy = 0;
 
-        frame.add(selectedFile, gbc);
+        optionsPanel.add(selectedFile, gbc);
 
         //Row 2
 
         gbc.gridx = 1;
         gbc.gridy = 1;
 
-        //frame.add(trainingSplitPercentageLabel, gbc);
-
-        //frame.add(targetChooser, gbc);
+        optionsPanel.add(trainingSplitPercentageTextField, gbc);
 
         //Row 3
 
-        //gbc.gridy++;
+        gbc.gridx = 1;
+        gbc.gridy = 2;
 
-        frame.add(trainingSplitPercentageTextField, gbc);
+        optionsPanel.add(numberOfTreesToCreateTextField, gbc);
 
         //Row 4
 
-        gbc.gridy++;
+        gbc.gridx = 1;
+        gbc.gridy = 3;
 
-        frame.add(testButton, gbc);
+        optionsPanel.add(saveResultsButton, gbc);
 
 
         /**
-         * Column 3:
+         * Add the options panel to the frame
          */
 
-        //Row 1
+        frame.add(optionsPanel);
 
-        gbc.weightx = 10;
-        gbc.weighty = 10;
+        /**
+         * Add the display to the frame
+         */
 
-        gbc.gridx++;
-        gbc.gridy = 0;
+        frame.add(display);
 
-        gbc.gridheight = 6;
+        //Size the frame.
+        frame.setSize(500, 800);
 
-        frame.add(display, gbc);
 
-        //4. Size the frame.
-        frame.pack();
-
-        //5. Show it.
+        //Show it.
+        frame.setLocationRelativeTo(null);
         frame.setVisible(true);
         this.gui = frame;
     }
-
-
 
 
 }
